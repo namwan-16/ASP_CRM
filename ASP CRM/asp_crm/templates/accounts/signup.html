@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>ASP CRM Signup</title>
+
+</head>
+
+<body>
+
+    <h1>ASP CRM</h1>
+
+    <h2>Create Account</h2>
+
+    <form method="POST">
+
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit">
+            Sign Up
+        </button>
+
+    </form>
+
+    <p>
+        Already have an account?
+
+        <a href="{% url 'login' %}">
+            Login
+        </a>
+    </p>
+
+</body>
+
+</html>

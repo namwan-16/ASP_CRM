@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASP CRM — Login & Sign Up </title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    background: #E8EDF5;
+    min-height: 100vh;
+  }
+  .stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  input:focus {
+    outline: none;
+    border-color: #1e3a5f !important;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+  }
+  .btn-primary:hover { background: #152a45 !important; }
+  .btn-primary:active { transform: scale(0.98); }
+  .link-gold:hover { text-decoration: underline; }
+  .fade-in {
+    animation: fadeIn 0.35s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+<div id="root" class="stage"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ── Colours matching Figma ── */
+const NAVY = "#1e3a5f";
+const NAVY_DARK = "#152a45";
+const NAVY_DEEP = "#0f1f33";
+const LIGHT_BG = "#E8EDF5";
+const MUTED = "#64748b";
+
+/* ── Icons ── */
+function Icon({ children, size = 20, color = "currentColor", className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+         className={className}>
+      {children}
+    </svg>
+  );
+}
+
+const GraduationCap = ({ size = 28, color = "#1e3a5f" }) => (
+  <Icon size={size} color={color}>
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+  </Icon>
+);
+
+const Lock = ({ size = 18, color = "#94a3b8" }) => (
+  <Icon size={size} color={color}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </Icon>
+);
+
+const Mail = ({ size = 18, color = "#94a3b8" }) => (
+  <Icon size={size} color={color}>
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <polyline points="22,6 12,13 2,6" />
+  </Icon>
+);
+
+const User = ({ size = 18, color = "#94a3b8" }) => (
+  <Icon size={size} color={color}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </Icon>
+);
+
+const Eye = ({ size = 18, color = "#94a3b8" }) => (
+  <Icon size={size} color={color}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+
+const EyeOff = ({ size = 18, color = "#94a3b8" }) => (
+  <Icon size={size} color={color}>
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </Icon>
+);
+
+/* ── Left illustration panel (matches Figma style) ── */
+function IllustrationPanel() {
+  return (
+    <div
+      className="relative hidden md:flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        width: "48%",
+        minHeight: 560,
+        background: `linear-gradient(160deg, ${NAVY_DEEP} 0%, ${NAVY} 55%, #243b5c 100%)`,
+      }}
+    >
+      {/* Soft decorative circles */}
+      <div style={{
+        position: "absolute", top: -40, left: -40,
+        width: 180, height: 180, borderRadius: "50%",
+        background: "rgba(255,255,255,0.04)"
+      }} />
+      <div style={{
+        position: "absolute", bottom: -60, right: -30,
+        width: 220, height: 220, borderRadius: "50%",
+        background: "rgba(255,255,255,0.03)"
+      }} />
+
+      {/* Main illustration card */}
+      <div className="relative z-10 flex flex-col items-center px-8">
+        {/* Browser window mockup */}
+        <div
+          className="rounded-xl overflow-hidden shadow-2xl"
+          style={{
+            width: 300,
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
+          }}
+        >
+          {/* Window chrome */}
+          <div className="flex items-center gap-1.5 px-3 py-2" style={{ background: "rgba(0,0,0,0.25)" }}>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#ff5f57" }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#febc2e" }} />
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#28c840" }} />
+            <div className="ml-3 flex-1 h-4 rounded" style={{ background: "rgba(255,255,255,0.1)" }} />
+          </div>
+
+          {/* Content area */}
+          <div className="flex flex-col items-center justify-center py-10 px-6">
+            {/* Lock icon circle */}
+            <div
+              className="flex items-center justify-center rounded-2xl mb-4"
+              style={{
+                // width: 92, height: 92,
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.18)",
+                
+              }}
+              
+            >
+            <img
+                src="1.png"   // ← replace with your image source
+                alt="Locked content"
+                className="w-full h-full object-cover"
+    />
+              <Lock size={32} color="#ffffff" />
+            </div>
+           
+          </div>
+        </div>
+
+        {/* Person silhouette hint */}
+        <div className="mt-8 text-center">
+          <div className="text-white/80 text-[15px] font-semibold">ASP Class Process Pipeline</div>
+          <div className="text-white/45 text-xs mt-1">MU After School Program · Mathematics &amp; Physical Sciences</div>
+        </div>
+      </div>
+
+      {/* Bottom decorative dots */}
+      <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-1.5">
+        {[0,1,2].map(i => (
+          <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: i === 0 ? "#fff" : "rgba(255,255,255,0.3)" }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Shared form field ── */
+function Field({ label, type = "text", value, onChange, placeholder, icon: IconComp, rightElement }) {
+  return (
+    <div className="mb-4">
+      <label className="block text-[12.5px] font-semibold mb-1.5" style={{ color: "#334155" }}>
+        {label}
+      </label>
+      <div
+        className="flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 transition-all"
+        style={{ borderColor: "#e2e8f0", background: "#f8fafc" }}
+      >
+        {IconComp && <IconComp size={17} color="#94a3b8" />}
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="flex-1 bg-transparent text-[13.5px] text-slate-700 placeholder:text-slate-400"
+          style={{ border: "none", outline: "none" }}
+        />
+        {rightElement}
+      </div>
+    </div>
+  );
+}
+
+/* ── LOGIN PAGE ── */
+function LoginPage({ onSwitchToSignup, onLoginSuccess }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password.");
+      return;
+    }
+    setError("");
+    onLoginSuccess();
+  };
+
+  return (
+    <div className="fade-in flex w-full max-w-[900px] overflow-hidden rounded-2xl shadow-2xl bg-white" style={{ minHeight: 560 }}>
+      <IllustrationPanel />
+
+      {/* Right form panel */}
+      <div className="flex flex-1 flex-col justify-center px-8 py-10 sm:px-12">
+        {/* Logo */}
+        <div className="mb-6 flex items-center gap-2.5">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ background: NAVY }}
+          >
+            <GraduationCap size={24} color="#fff" />
+          </div>
+          <div>
+            <div className="text-[18px] font-bold leading-tight" style={{ color: NAVY }}>ASP CRM</div>
+            <div className="text-[11px] font-medium tracking-wide" style={{ color: MUTED }}>Class Process Pipeline</div>
+          </div>
+        </div>
+
+        <h1 className="text-[22px] font-bold mb-1" style={{ color: NAVY }}>Welcome back</h1>
+        <p className="text-[13px] mb-7" style={{ color: MUTED }}>
+          Sign in with your authorised ASP account.
+        </p>
+
+        {error && (
+          <div className="mb-4 rounded-lg px-3 py-2 text-[12.5px] font-medium"
+               style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <Field
+            label="Email address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@murdoch.edu.au"
+            icon={Mail}
+          />
+
+          <Field
+            label="Password"
+            type={showPass ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            icon={Lock}
+            rightElement={
+              <button type="button" onClick={() => setShowPass(!showPass)} className="p-0.5">
+                {showPass ? <EyeOff size={17} color="#94a3b8" /> : <Eye size={17} color="#94a3b8" />}
+              </button>
+            }
+          />
+
+          <div className="mb-6 text-right">
+            <button type="button" className="text-[12.5px] font-medium link-gold" style={{ color: "#b08d4f", background: "none", border: "none", cursor: "pointer" }}>
+              Forgot Password?
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            className="btn-primary w-full rounded-lg py-3 text-[14px] font-semibold text-white transition-all"
+            style={{ background: NAVY, border: "none", cursor: "pointer" }}
+          >
+            Sign in
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-[12.5px]" style={{ color: MUTED }}>
+          Need help?{" "}
+          <span className="font-medium" style={{ color: NAVY }}>Contact the ASP coordinator.</span>
+        </p>
+
+        <div className="mt-5 pt-5 border-t border-slate-100 text-center">
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Don't have an account? </span>
+          <button
+            type="button"
+            onClick={onSwitchToSignup}
+            className="text-[12.5px] font-semibold"
+            style={{ color: NAVY, background: "none", border: "none", cursor: "pointer" }}
+          >
+            Sign up
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SIGN UP PAGE ── */
+function SignupPage({ onSwitchToLogin, onSignupSuccess }) {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [role, setRole] = useState("admin");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+    setError("");
+    onSignupSuccess();
+  };
+
+  return (
+    <div className="fade-in flex w-full max-w-[900px] overflow-hidden rounded-2xl shadow-2xl bg-white" style={{ minHeight: 600 }}>
+      <IllustrationPanel />
+
+      {/* Right form panel */}
+      <div className="flex flex-1 flex-col justify-center px-8 py-8 sm:px-12">
+        {/* Logo */}
+        <div className="mb-5 flex items-center gap-2.5">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ background: NAVY }}
+          >
+            <GraduationCap size={24} color="#fff" />
+          </div>
+          <div>
+            <div className="text-[18px] font-bold leading-tight" style={{ color: NAVY }}>ASP CRM</div>
+            <div className="text-[11px] font-medium tracking-wide" style={{ color: MUTED }}>Class Process Pipeline</div>
+          </div>
+        </div>
+
+        <h1 className="text-[22px] font-bold mb-1" style={{ color: NAVY }}>Create account</h1>
+        <p className="text-[13px] mb-5" style={{ color: MUTED }}>
+          Register for authorised access to the ASP CRM system.
+        </p>
+
+        {error && (
+          <div className="mb-4 rounded-lg px-3 py-2 text-[12.5px] font-medium"
+               style={{ background: "#fef2f2", color: "#b91c1c", border: "1px solid #fecaca" }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <Field
+            label="Full name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="e.g. Marcus Anderson"
+            icon={User}
+          />
+
+          <Field
+            label="Email address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="name@murdoch.edu.au"
+            icon={Mail}
+          />
+
+          {/* Role selector */}
+          <div className="mb-4">
+            <label className="block text-[12.5px] font-semibold mb-1.5" style={{ color: "#334155" }}>
+              Role
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full rounded-lg border px-3.5 py-2.5 text-[13.5px] text-slate-700"
+              style={{ borderColor: "#e2e8f0", background: "#f8fafc", outline: "none" }}
+            >
+              <option value="admin">Administrator</option>
+              <option value="presenter">Presenter / Tutor</option>
+              <option value="coordinator">Coordinator</option>
+            </select>
+          </div>
+
+          <Field
+            label="Password"
+            type={showPass ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimum 8 characters"
+            icon={Lock}
+            rightElement={
+              <button type="button" onClick={() => setShowPass(!showPass)} className="p-0.5">
+                {showPass ? <EyeOff size={17} color="#94a3b8" /> : <Eye size={17} color="#94a3b8" />}
+              </button>
+            }
+          />
+
+          <Field
+            label="Confirm password"
+            type={showPass ? "text" : "password"}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Re-enter password"
+            icon={Lock}
+          />
+
+          <button
+            type="submit"
+            className="btn-primary mt-2 w-full rounded-lg py-3 text-[14px] font-semibold text-white transition-all"
+            style={{ background: NAVY, border: "none", cursor: "pointer" }}
+          >
+            Create account
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-[12px]" style={{ color: MUTED }}>
+          Access is subject to approval by the ASP coordinator.
+        </p>
+
+        <div className="mt-4 pt-4 border-t border-slate-100 text-center">
+          <span className="text-[12.5px]" style={{ color: MUTED }}>Already have an account? </span>
+          <button
+            type="button"
+            onClick={onSwitchToLogin}
+            className="text-[12.5px] font-semibold"
+            style={{ color: NAVY, background: "none", border: "none", cursor: "pointer" }}
+          >
+            Sign in
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Simple success / dashboard stub after login ── */
+function SuccessScreen({ message, onLogout }) {
+  return (
+    <div className="fade-in flex w-full max-w-[480px] flex-col items-center rounded-2xl bg-white p-10 shadow-2xl text-center">
+      <div
+        className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl"
+        style={{ background: NAVY }}
+      >
+        <GraduationCap size={32} color="#fff" />
+      </div>
+      <h2 className="text-[20px] font-bold mb-2" style={{ color: NAVY }}>{message}</h2>
+      <p className="text-[13px] mb-6" style={{ color: MUTED }}>
+        You are now signed in to the ASP Class Process Pipeline CRM.
+      </p>
+      <button
+        onClick={onLogout}
+        className="rounded-lg px-6 py-2.5 text-[13px] font-semibold text-white"
+        style={{ background: NAVY, border: "none", cursor: "pointer" }}
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App() {
+  const [page, setPage] = useState("login"); // login | signup | success
+
+  if (page === "success") {
+    return (
+      <SuccessScreen
+        message="Welcome to ASP CRM"
+        onLogout={() => setPage("login")}
+      />
+    );
+  }
+
+  if (page === "signup") {
+    return (
+      <SignupPage
+        onSwitchToLogin={() => setPage("login")}
+        onSignupSuccess={() => setPage("success")}
+      />
+    );
+  }
+
+  return (
+    <LoginPage
+      onSwitchToSignup={() => setPage("signup")}
+      onLoginSuccess={() => setPage("success")}
+    />
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
