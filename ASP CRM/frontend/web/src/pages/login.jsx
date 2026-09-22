@@ -155,10 +155,15 @@ export default function Login() {
           </p>
 
           <div className="mt-5 pt-5 border-t border-slate-100 text-center">
-            <span className="text-[12.5px]" style={{ color: MUTED }}>Don't have an account? </span>
-            <Link to="/signup" className="text-[12.5px] font-semibold" style={{ color: NAVY }}>
-              Sign up
-            </Link>
+            <p className="text-center text-sm text-slate-500 mt-6">
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="font-semibold text-[#23466e] hover:underline"
+                >
+                  Sign up
+                </Link>
+            </p>
           </div>
         </div>
       </div>
