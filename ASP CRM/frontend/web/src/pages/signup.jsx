@@ -8,7 +8,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-
+import signup from "../assets/images/signup.png";
 function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,49 +76,44 @@ function Signup() {
           <div className="absolute -bottom-24 -right-20 w-72 h-72 bg-[#24466e] rounded-full opacity-40"></div>
 
           {/* Illustration */}
-          <div className="relative z-10 w-full max-w-[360px]">
+         
 
             <div className="bg-[#2d496b] border border-slate-500/40 rounded-2xl p-5 shadow-lg">
 
               {/* Browser window */}
-              <div className="bg-[#233d5c] rounded-xl overflow-hidden">
+             
 
                 {/* Browser header */}
-                <div className="h-10 bg-[#1d3552] flex items-center gap-2 px-4">
+                {/* <div className="h-10 bg-[#1d3552] flex items-center gap-2 px-4">
 
                   <span className="w-3 h-3 bg-red-400 rounded-full"></span>
                   <span className="w-3 h-3 bg-yellow-400 rounded-full"></span>
                   <span className="w-3 h-3 bg-green-400 rounded-full"></span>
 
                   <div className="ml-3 h-5 flex-1 rounded-md bg-slate-500/40"></div>
-                </div>
-
+                </div> */}
                 {/* Illustration area */}
-                <div className="h-[300px] flex items-center justify-center relative">
+              
 
-                  <div className="w-[270px] h-[210px] bg-slate-300/20 border border-slate-400/30 rounded-2xl relative">
-
-                    {/* Computer */}
-                    <div className="absolute top-10 left-12 w-44 h-28 bg-white/80 rounded-lg shadow-md">
-
-                      <div className="h-5 bg-slate-200 rounded-t-lg"></div>
-
-                      <div className="flex justify-center items-center h-20">
-                        <div className="bg-white border border-slate-300 rounded-lg p-3">
-                          <Lock size={28} className="text-[#23466e]" />
+                    {/* Computer */}               
+                      {/* <div className="h-5 bg-slate-200 rounded-t-lg"></div>                     */}
+                        <div className="relative z-10 w-full max-w-[360px]">
+                          <img
+                            src={signup}
+                            alt="ASP CRM secure account illustration"
+                            className="w-full object-contain"
+                          />
                         </div>
-                      </div>
-
-                    </div>
+                     
 
                     {/* Person representation */}
-                    <div className="absolute bottom-5 left-20">
+                    {/* <div className="absolute bottom-5 left-20">
 
                       <div className="w-10 h-10 bg-[#d6b89c] rounded-full mx-auto"></div>
 
                       <div className="w-16 h-20 bg-[#203b5a] rounded-t-3xl mt-1"></div>
 
-                    </div>
+                    </div> */}
 
                     {/* Plant */}
                     <div className="absolute bottom-3 left-3">
@@ -127,12 +122,12 @@ function Signup() {
                       <div className="absolute left-1 top-8 w-8 h-8 bg-[#31587e] rounded-full"></div>
                     </div>
 
-                  </div>
+                  
 
-                </div>
-              </div>
+                
+             
             </div>
-          </div>
+        
 
           {/* Left text */}
           <div className="relative z-10 text-center mt-8">
@@ -187,7 +182,7 @@ function Signup() {
 
             {/* Error */}
             {error && (
-              <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="mb-5 rounded-lg border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
@@ -265,81 +260,82 @@ function Signup() {
               </div>
 
               {/* Password */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Password
-                </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Password
+                        </label>
 
-                <div className="relative">
+                        <div className="relative">
 
-                  <Lock
-                    size={20}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
+                        <Lock
+                            size={20}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                        />
 
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Minimum 8 characters"
-                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-700 placeholder:text-slate-400 outline-none focus:border-[#23466e] focus:ring-2 focus:ring-[#23466e]/10"
-                  />
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Minimum 8 characters"
+                            className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-700 placeholder:text-slate-400 outline-none focus:border-[#23466e] focus:ring-2 focus:ring-[#23466e]/10"
+                        />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#23466e]"
-                  >
-                    {showPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#23466e]"
+                        >
+                            {showPassword ? (
+                            <EyeOff size={20} />
+                            ) : (
+                            <Eye size={20} />
+                            )}
+                        </button>
 
-                </div>
-              </div>
+                        </div>
+                    </div>
 
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Confirm password
-                </label>
+                    {/* Confirm Password */}
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Confirm password
+                        </label>
 
-                <div className="relative">
+                        <div className="relative">
 
-                  <Lock
-                    size={20}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
+                        <Lock
+                            size={20}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                        />
 
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Re-enter password"
-                    className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-700 placeholder:text-slate-400 outline-none focus:border-[#23466e] focus:ring-2 focus:ring-[#23466e]/10"
-                  />
+                        <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            placeholder="Re-enter password"
+                            className="w-full h-12 rounded-xl border border-slate-200 bg-slate-50 pl-12 pr-12 text-slate-700 placeholder:text-slate-400 outline-none focus:border-[#23466e] focus:ring-2 focus:ring-[#23466e]/10"
+                        />
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#23466e]"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                            }
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#23466e]"
+                        >
+                            {showConfirmPassword ? (
+                            <EyeOff size={20} />
+                            ) : (
+                            <Eye size={20} />
+                            )}
+                        </button>
 
-                </div>
-              </div>
-
+                        </div>
+                    </div>
+             </div>
               {/* Submit */}
               <button
                 type="submit"

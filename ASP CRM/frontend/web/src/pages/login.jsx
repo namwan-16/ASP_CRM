@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { GraduationCap, Mail, Lock, Eye, EyeOff } from "lucide-react";
-
+import loginicon from "../assets/images/login-icon.png";
 const NAVY = "#1e3a5f";
 const NAVY_DEEP = "#0f1f33";
 const MUTED = "#64748b";
@@ -37,7 +37,7 @@ export default function Login() {
           <div className="absolute -bottom-16 -right-8 w-56 h-56 rounded-full bg-white/5" />
 
           <div className="relative z-10 flex flex-col items-center px-8 text-center">
-            <div className="w-64 rounded-xl overflow-hidden border border-white/15 bg-white/10 shadow-2xl">
+            {/* <div className="w-64 rounded-xl overflow-hidden border border-white/15 bg-white/10 shadow-2xl">
               <div className="flex items-center gap-1.5 px-3 py-2 bg-black/25">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
                 <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
@@ -52,7 +52,14 @@ export default function Login() {
                   Protected student & guardian data<br />with role-based access control
                 </div>
               </div>
-            </div>
+            </div> */}
+            <div className="relative z-10 w-full max-w-[360px]">
+  <img
+    src={loginicon}
+    alt="ASP CRM secure account illustration"
+    className="w-full object-contain"
+  />
+</div>
 
             <div className="mt-8">
               <div className="text-white/90 font-semibold text-[15px]">ASP Class Process Pipeline</div>
