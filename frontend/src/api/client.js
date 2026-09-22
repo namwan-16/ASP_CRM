@@ -59,7 +59,7 @@ api.interceptors.response.use(
   },
 );
 
-//updated
+//updated namgyal
 export default api;
 
 
