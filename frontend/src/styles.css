@@ -127,3 +127,6 @@ button:disabled { opacity: 0.65; cursor: wait; }
   .role-badge { align-self: flex-start; }
 }
 
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
