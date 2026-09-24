@@ -28,7 +28,10 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "accounts",
+<<<<<<< HEAD
     ##for excel upload 
+=======
+>>>>>>> origin/tshewang
     "students",
 ]
 

@@ -127,6 +127,7 @@ button:disabled { opacity: 0.65; cursor: wait; }
   .role-badge { align-self: flex-start; }
 }
 
+<<<<<<< HEAD
 .card-link {
   display: inline-block;
   width: fit-content;
@@ -645,3 +646,8 @@ th { color: #52645b; background: #f4f7f5; }
   .import-layout { grid-template-columns: 1fr; }
   .result-panel { position: static; }
 }
+=======
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+>>>>>>> origin/tshewang
