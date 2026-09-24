@@ -1,5 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap");
-
+@import "tailwindcss";
 :root {
   font-family: "DM Sans", system-ui, sans-serif;
   color: #17231e;
@@ -8,10 +8,22 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Hide browser native password reveal button */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none !important;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input { font: inherit; }
-a { color: #08785b; font-weight: 700; }
+a { color: #23466e; font-weight: 700; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { font-family: "Manrope", sans-serif; letter-spacing: -0.035em; }
 
@@ -55,8 +67,8 @@ form { display: grid; gap: 1rem; margin: 1.7rem 0; }
 label { display: grid; gap: 0.45rem; font-size: 0.9rem; font-weight: 700; }
 input {
   width: 100%;
-  padding: 0.86rem 1rem;
-  border: 1px solid #cbd8d0;
+  /* padding: 0.86rem 1rem; */
+  /* border: 1px solid #cbd8d0; */
   border-radius: 10px;
   outline: none;
   background: #fbfdfc;
@@ -66,7 +78,7 @@ button {
   border: 0;
   border-radius: 10px;
   padding: 0.9rem 1.2rem;
-  background: #08785b;
+  /* background: #08785b; */
   color: white;
   font-weight: 800;
   cursor: pointer;
