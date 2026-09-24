@@ -1,5 +1,5 @@
 import { useAuth } from "../context/AuthContext";
-
+import { Link } from "react-router-dom";
 const cards = [
   ["Students", "Registration, guardian links, and class allocation"],
   ["Attendance", "Track attendance and late notifications"],
@@ -49,6 +49,12 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
+      <Link
+  className="card-link"
+  to="/students/import"
+>
+  Import students from Excel
+</Link>
     </main>
   );
 }

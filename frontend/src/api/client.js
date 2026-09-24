@@ -59,6 +59,20 @@ api.interceptors.response.use(
   },
 );
 
+//for excel import api 
+api.interceptors.request.use((config) => {
+  const access = localStorage.getItem("accessToken");
+
+  if (access) {
+    config.headers.Authorization = `Bearer ${access}`;
+  }
+
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
+  return config;
+});
 //updated namgyal
 export default api;
 
