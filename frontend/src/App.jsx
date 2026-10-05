@@ -3,9 +3,12 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout, { sidebarPages } from "./components/Layout";
 
-import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+import Students from "./pages/Students";
+import Guardians from "./pages/Guardians";
+import Classes from "./pages/Classes";
 
 function PlaceholderPage({ title }) {
   return (
@@ -25,6 +28,9 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/students" element={<Students />} />
+          <Route path="/guardians" element={<Guardians />} />
+          <Route path="/classes" element={<Classes />} />
 
           {sidebarPages
             .filter((page) => page.path !== "/dashboard")
@@ -43,10 +49,7 @@ export default function App() {
         </Route>
       </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to="/dashboard" replace />}
-      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
