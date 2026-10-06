@@ -104,9 +104,7 @@ button:disabled { opacity: 0.65; cursor: wait; }
   margin-bottom: 3.2rem;
   color: white;
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(240, 197, 90, 0.32), transparent 25%),
-    linear-gradient(135deg, #08674f, #07382f);
+  background: #23466e;
   box-shadow: 0 24px 60px rgba(6, 64, 49, 0.16);
 }
 .welcome-panel h2 { font-size: clamp(2rem, 5vw, 3.6rem); margin-bottom: 0.7rem; }

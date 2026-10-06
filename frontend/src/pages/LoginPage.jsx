@@ -316,7 +316,7 @@ export default function LoginPage() {
             <div className="mb-6 text-right">
               <a
                 
-                className="text-[12.5px] font-medium text-[rgb(30, 58, 95)] hover:underline"
+                className="text-[12.5px] font-medium text-[rgb(176, 141, 79)] hover:underline"
               >
                 Forgot Password?
               </a>
@@ -326,7 +326,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full rounded-lg py-3 text-[14px] font-semibold text-white transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-lg text-white font-semibold text-[14px]
+    bg-[#1e3a5f]
+    hover:bg-[#152a45] hover:shadow-lg hover:-translate-y-0.5
+    active:translate-y-0 active:shadow-md
+    transition-all duration-200 ease-out"
               style={{ background: NAVY }}
             >
               {submitting ? "Signing in…" : "Sign in"}
