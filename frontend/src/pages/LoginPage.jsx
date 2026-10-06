@@ -75,40 +75,56 @@
 //   );
 // }
 
-
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import {
-  GraduationCap,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-} from "lucide-react";
-
 import { useAuth } from "../context/AuthContext";
-import icon from "../assets/images/icon.png";
+import secureLoginIllustration from "../assets/secure login.svg";
+import "./LoginPage.css";
 
-const NAVY = "#1e3a5f";
-const NAVY_DEEP = "#0f1f33";
-const MUTED = "#64748b";
+function BrandMark() {
+  return (
+    <svg
+      className="login-page__brand-icon"
+      viewBox="0 0 64 48"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="m4 16 28-11 28 11-28 11L4 16Z"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 21v13c10 8 26 8 36 0V21M60 16v16"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPass, setShowPass] = useState(false);
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // If the user is already logged in, send them to the dashboard.
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleSubmit = async (event) => {
+  function updateField(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
 
     setError("");
@@ -121,253 +137,117 @@ export default function LoginPage() {
     setSubmitting(true);
 
     try {
-      // Use the real authentication functionality
-      // from AuthContext.
-      await login(username, password);
-
-      // Login successful
+      await login(form.username.trim(), form.password);
       navigate("/dashboard", { replace: true });
-    } catch (error) {
-      setError("The username or password is incorrect.");
+    } catch {
+      setError(
+        "We couldn’t sign you in. Check your username and password, then try again.",
+      );
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#E8EDF5] p-4">
-      <div className="flex w-full max-w-[900px] overflow-hidden rounded-2xl shadow-2xl bg-white min-h-[560px]">
+    <main className="login-page">
+      <section className="login-page__art-panel" aria-label="ASP CRM">
+        <img
+          className="login-page__illustration"
+          src={secureLoginIllustration}
+          alt=""
+        />
+        <p className="login-page__art-caption">
+          A secure workspace for the After School Program
+        </p>
+      </section>
 
-        {/* =====================================================
-            LEFT PANEL
-        ====================================================== */}
-        <div
-          className="relative hidden md:flex flex-col items-center justify-center w-[48%] overflow-hidden"
-          style={{
-            background: `linear-gradient(
-              160deg,
-              ${NAVY_DEEP} 0%,
-              ${NAVY} 55%,
-              #243b5c 100%
-            )`,
-          }}
-        >
-          {/* Decorative circles */}
-          <div className="absolute -top-10 -left-10 w-44 h-44 rounded-full bg-white/5" />
+      <section className="login-page__content">
+        <div className="login-page__form-wrap">
+          <div className="login-page__brand">
+            <BrandMark />
+            <span>ASP CRM</span>
+          </div>
 
-          <div className="absolute -bottom-16 -right-8 w-56 h-56 rounded-full bg-white/5" />
+          <header className="login-page__heading">
+            <p className="login-page__eyebrow">MU After School Program</p>
+            <h1>Welcome back</h1>
+            <p>Sign in with your authorised ASP account.</p>
+          </header>
 
-          <div className="relative z-10 flex flex-col items-center px-8 text-center">
-
-            {/* Login illustration */}
-            <div className="relative z-10 w-full max-w-[360px]">
-              <img
-                src={icon}
-                alt="ASP CRM secure account illustration"
-                className="w-full object-contain"
+          <form className="login-page__form" onSubmit={handleSubmit}>
+            <label className="login-page__field" htmlFor="login-username">
+              <span>Username</span>
+              <input
+                id="login-username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck="false"
+                required
+                value={form.username}
+                onChange={updateField}
+                disabled={submitting}
               />
-            </div>
+            </label>
 
-            {/* Branding text */}
-            <div className="mt-8">
-              <div className="text-white/90 font-semibold text-[15px]">
-                ASP Class Process Pipeline
-              </div>
+            <div className="login-page__field">
+              <label htmlFor="login-password">Password</label>
 
-              <div className="text-white/45 text-xs mt-1">
-                MU After School Program · Mathematics & Physical Sciences
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* =====================================================
-            RIGHT LOGIN FORM
-        ====================================================== */}
-        <div className="flex flex-1 flex-col justify-center px-8 py-10 sm:px-12">
-
-          {/* Logo / heading */}
-          <div className="mb-6 flex items-center gap-2.5">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl"
-              style={{ background: NAVY }}
-            >
-              <GraduationCap size={24} className="text-white" />
-            </div>
-
-            <div>
-              <div
-                className="text-[18px] font-bold leading-tight"
-                style={{ color: NAVY }}
-              >
-                ASP CRM
-              </div>
-
-              <div
-                className="text-[11px] font-medium tracking-wide"
-                style={{ color: MUTED }}
-              >
-                Class Process Pipeline
-              </div>
-            </div>
-          </div>
-
-          {/* Welcome text */}
-          <h1
-            className="text-[22px] font-bold mb-1"
-            style={{ color: NAVY }}
-          >
-            Welcome back
-          </h1>
-
-          <p
-            className="text-[13px] mb-7"
-            style={{ color: MUTED }}
-          >
-            Sign in with your authorised ASP account.
-          </p>
-
-          {/* Backend authentication error */}
-          {error && (
-            <div className="mb-4 rounded-lg px-3 py-2 text-[12.5px] font-medium bg-red-50 text-red-700 border border-red-200">
-              {error}
-            </div>
-          )}
-
-          {/* =================================================
-              LOGIN FORM
-          ================================================== */}
-          <form onSubmit={handleSubmit}>
-
-            {/* Username */}
-            <div className="mb-4">
-              <label
-                className="block text-[12.5px] font-semibold mb-1.5 text-slate-700"
-              >
-                Username
-              </label>
-
-              <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5">
-                <Mail size={17} className="text-slate-400" />
-
+              <span className="login-page__password-wrap">
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(event) => {
-                    setUsername(event.target.value);
-                    setError("");
-                  }}
-                  placeholder="Enter your username"
-                  autoComplete="username"
-                  required
-                  disabled={submitting}
-                  className="flex-1 bg-transparent text-[13.5px] text-slate-700 outline-none disabled:opacity-60"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="mb-4">
-              <label
-                className="block text-[12.5px] font-semibold mb-1.5 text-slate-700"
-              >
-                Password
-              </label>
-
-              <div className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5">
-                <Lock size={17} className="text-slate-400" />
-
-                <input
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    setError("");
-                  }}
-                  placeholder="••••••••"
+                  id="login-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
+                  value={form.password}
+                  onChange={updateField}
                   disabled={submitting}
-                  className="flex-1 bg-transparent text-[13.5px] text-slate-700 outline-none disabled:opacity-60"
                 />
 
-                {/* Show / hide password */}
                 <button
+                  className="login-page__password-toggle"
                   type="button"
-                  onClick={() => setShowPass(!showPass)}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
                   disabled={submitting}
-                  className="text-slate-400 hover:text-slate-600 disabled:opacity-50"
-                  aria-label={
-                    showPass
-                      ? "Hide password"
-                      : "Show password"
-                  }
                 >
-                  {showPass ? (
-                    <EyeOff size={17} />
-                  ) : (
-                    <Eye size={17} />
-                  )}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
-              </div>
+              </span>
             </div>
 
-            {/* Forgot password */}
-            <div className="mb-6 text-right">
-              <a
-                
-                className="text-[12.5px] font-medium text-[rgb(176, 141, 79)] hover:underline"
-              >
-                Forgot Password?
-              </a>
-            </div>
+            {error && (
+              <p className="login-page__error" role="alert">
+                {error}
+              </p>
+            )}
 
-            {/* Sign in button */}
             <button
+              className="login-page__submit"
               type="submit"
               disabled={submitting}
-              className="w-full py-3 rounded-lg text-white font-semibold text-[14px]
-    bg-[#1e3a5f]
-    hover:bg-[#152a45] hover:shadow-lg hover:-translate-y-0.5
-    active:translate-y-0 active:shadow-md
-    transition-all duration-200 ease-out"
-              style={{ background: NAVY }}
+              aria-busy={submitting}
             >
               {submitting ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
-          {/* Help */}
-          <p
-            className="mt-6 text-center text-[12.5px]"
-            style={{ color: MUTED }}
-          >
-            Need help?{" "}
-            <span
-              className="font-medium"
-              style={{ color: NAVY }}
-            >
-              Contact the ASP coordinator.
-            </span>
+          <p className="login-page__help">
+            Forgot your password?{" "}
+            <a href="mailto:afterschoolprogram@murdoch.edu.au?subject=ASP%20CRM%20login%20assistance">
+              Contact the ASP coordinator
+            </a>
           </p>
 
-          {/* Register */}
-          <div className="mt-5 pt-5 border-t border-slate-100 text-center">
-            <p className="text-center text-sm text-slate-500 mt-6">
-              Don't have an account?{" "}
-              <Link
-                to="/register"
-                className="font-semibold text-[#23466e] hover:underline"
-              >
-                Sign up
-              </Link>
-            </p>
-          </div>
-
+          <p className="login-page__register">
+            Need an ASP CRM account?{" "}
+            <Link to="/register">Create an account</Link>
+          </p>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
-
-
