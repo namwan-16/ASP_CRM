@@ -1,0 +1,67 @@
+.el-panel {
+  --el-bg: #ffffff;
+  --el-ink: #14324f;        /* matches the sidebar blue */
+  --el-muted: #6b7c8f;
+  --el-border: #e1e7ee;
+  --el-field: #f6f8fb;
+  --el-accent: #d63b3f;
+  --el-accent-soft: #fdecec;
+
+  background: var(--el-bg);
+  color: var(--el-ink);
+  border: 1px solid var(--el-border);
+  border-radius: 16px;
+  padding: 28px 32px 36px;
+  min-height: 420px;
+  font-family: inherit;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(20, 50, 79, .04), 0 8px 24px rgba(20, 50, 79, .05);
+}
+.el-panel * { box-sizing: border-box; }
+
+.el-panel .el-title { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; }
+.el-panel .el-title svg { padding: 0; flex-shrink: 0; }
+.el-panel .el-title h2 { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; color: var(--el-ink); }
+.el-panel .el-sub { margin: 0 0 22px; font-size: 15px; color: var(--el-muted); }
+
+.el-panel .el-search {
+  display: flex; align-items: center; gap: 12px;
+  height: 56px; padding: 0 18px;
+  border: 1.5px solid var(--el-border); border-radius: 14px;
+  background: var(--el-field); color: var(--el-muted);
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.el-panel .el-search:focus-within {
+  border-color: var(--el-accent);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--el-accent-soft);
+}
+.el-panel .el-search input {
+  flex: 1; min-width: 0; height: 100%;
+  background: transparent; border: 0; outline: 0; box-shadow: none;
+  color: var(--el-ink); font-size: 16px; font-weight: 500; font-family: inherit;
+}
+.el-panel .el-search input::placeholder { color: #93a1b1; opacity: 1; }
+
+.el-panel .el-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-top: 56px; color: #93a1b1; font-size: 15px; text-align: center;
+}
+
+.el-panel .el-results { display: grid; gap: 10px; margin-top: 18px; }
+.el-panel .el-result {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 16px 20px; border: 1px solid var(--el-border); border-left: 4px solid var(--el-accent);
+  border-radius: 12px; background: #fff;
+}
+.el-panel .el-result h3 { margin: 0 0 2px; font-size: 17px; font-weight: 600; color: var(--el-ink); }
+.el-panel .el-result small { color: var(--el-muted); font-size: 13px; }
+.el-panel .el-contact { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.el-panel .el-contact a { display: inline-flex; align-items: center; gap: 8px; color: var(--el-ink); text-decoration: none; font-weight: 500; }
+.el-panel .el-contact a:hover,
+.el-panel .el-contact a:focus-visible { color: var(--el-accent); }
+
+@media (max-width: 640px) {
+  .el-panel { padding: 20px 16px 28px; }
+  .el-panel .el-title h2 { font-size: 20px; }
+}

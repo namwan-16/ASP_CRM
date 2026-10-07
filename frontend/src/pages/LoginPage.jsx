@@ -124,30 +124,52 @@ export default function LoginPage() {
     setForm((current) => ({ ...current, [name]: value }));
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  // async function handleSubmit(event) {
+  //   event.preventDefault();
 
-    setError("");
+  //   setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.");
-      return;
-    }
+  //   if (!username.trim() || !password.trim()) {
+  //     setError("Please enter both username and password.");
+  //     return;
+  //   }
 
-    setSubmitting(true);
+  //   setSubmitting(true);
 
-    try {
-      await login(form.username.trim(), form.password);
-      navigate("/dashboard", { replace: true });
-    } catch {
-      setError(
-        "We couldn’t sign you in. Check your username and password, then try again.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+  //   try {
+  //     await login(form.username.trim(), form.password);
+  //     navigate("/dashboard", { replace: true });
+  //   } catch {
+  //     setError(
+  //       "We couldn’t sign you in. Check your username and password, then try again.",
+  //     );
+  //   } finally {
+  //     setSubmitting(false);
+  //   }
+  // }
+    async function handleSubmit(event) {
+  event.preventDefault();
+
+  setError("");
+
+  if (!form.username.trim() || !form.password.trim()) {
+    setError("Please enter both username and password.");
+    return;
   }
 
+  setSubmitting(true);
+
+  try {
+    await login(form.username.trim(), form.password);
+    navigate("/dashboard", { replace: true });
+  } catch {
+    setError(
+      "We couldn’t sign you in. Check your username and password, then try again.",
+    );
+  } finally {
+    setSubmitting(false);
+  }
+}
   return (
     <main className="login-page">
       <section className="login-page__art-panel" aria-label="ASP CRM">
