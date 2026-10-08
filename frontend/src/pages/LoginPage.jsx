@@ -78,7 +78,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import secureLoginIllustration from "../assets/secure login.svg";
+import secureLoginIllustration from "../assets/Secure login.svg";
 import "./LoginPage.css";
 
 function BrandMark() {

@@ -42,8 +42,8 @@
 .rp-stat strong { display: block; font-size: 28px; line-height: 1.2; }
 .rp-stat span { color: var(--rp-muted); font-size: 14px; }
 
-.rp-table { background: #fff; border: 1px solid var(--rp-border); border-radius: 14px; overflow: hidden; }
-.rp-tr { display: grid; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--rp-border); font-size: 15px; align-items: center; }
+.rp-table { position: relative; background: #fff; border: 1px solid var(--rp-border); border-radius: 14px; overflow-x: auto; }
+.rp-tr { display: grid; min-width: 600px; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--rp-border); font-size: 15px; align-items: center; }
 .rp-tr:last-child { border-bottom: 0; }
 .rp-th { background: #f6f8fb; color: var(--rp-muted); font-size: 13px; font-weight: 600; padding-top: 11px; padding-bottom: 11px; }
 .rp-tr span:first-child { font-weight: 600; }

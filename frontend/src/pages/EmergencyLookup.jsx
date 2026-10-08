@@ -1,22 +1,25 @@
 import { useMemo, useState } from "react";
 import { ShieldAlert, Search, Users, Phone, Mail } from "lucide-react";
 import "./EmergencyLookup.css";
+import useRecords from "../hooks/useRecords";
+import RequestState from "../components/RequestState";
 
-// Replace with your real data (props, API call, context, etc.)
-const STUDENTS = [
-  { id: 1, name: "Amelia Carter", class: "Year 5", guardian: "Sarah Carter", relation: "Mother", phone: "0412 345 678", email: "sarah.carter@example.com" },
-  { id: 2, name: "Liam Nguyen", class: "Year 3", guardian: "Minh Nguyen", relation: "Father", phone: "0423 456 789", email: "minh.nguyen@example.com" },
-  { id: 3, name: "Zoe Patel", class: "Year 6", guardian: "Priya Patel", relation: "Mother", phone: "0434 567 890", email: "priya.patel@example.com" },
-];
 
-export default function EmergencyLookup({ students = STUDENTS }) {
+export default function EmergencyLookup() {
+  const records = useRecords("/students/");
   const [query, setQuery] = useState("");
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return students.filter((s) => s.name.toLowerCase().includes(q));
-  }, [query, students]);
+    return records.data.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)).flatMap((student) => {
+      const contacts = student.guardians.filter((link) => link.is_emergency_contact).sort((a, b) => Number(b.is_primary_contact) - Number(a.is_primary_contact));
+      const base = { name: `${student.first_name} ${student.last_name}`, class: student.year_level, medical: student.medical_information };
+      if (!contacts.length) return [{ ...base, id: `${student.id}-none`, guardian: "No emergency contact recorded", relation: "", phone: "", email: "" }];
+      return contacts.map((link) => ({ ...base, id: `${student.id}-${link.id}`, guardian: `${link.guardian_details.first_name} ${link.guardian_details.last_name}`,
+        relation: link.relationship, phone: link.guardian_details.phone, email: link.guardian_details.email }));
+    });
+  }, [query, records.data]);
 
   const hasQuery = query.trim().length > 0;
 
@@ -27,6 +30,7 @@ export default function EmergencyLookup({ students = STUDENTS }) {
         <h2>Emergency Guardian Lookup</h2>
       </div>
       <p className="el-sub">Search by student name for immediate guardian contact details.</p>
+      <RequestState loading={records.loading} error={records.error} onRetry={records.refresh} />
 
       <label className="el-search">
         <Search size={20} />
@@ -62,9 +66,10 @@ export default function EmergencyLookup({ students = STUDENTS }) {
                 <small>{s.class} &bull; Guardian: {s.guardian} ({s.relation})</small>
               </div>
               <div className="el-contact">
-                <a href={`tel:${s.phone.replace(/\s/g, "")}`}><Phone size={14} /> {s.phone}</a>
-                <a href={`mailto:${s.email}`}><Mail size={14} /> {s.email}</a>
+                {s.phone && <a href={`tel:${s.phone.replace(/\s/g, "")}`}><Phone size={14} /> {s.phone}</a>}
+                {s.email && <a href={`mailto:${s.email}`}><Mail size={14} /> {s.email}</a>}
               </div>
+              {s.medical && <p>Medical information: {s.medical}</p>}
             </div>
           ))}
         </div>

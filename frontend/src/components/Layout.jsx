@@ -40,6 +40,7 @@ export const sidebarPages = [
     icon: PersonAddOutlined,
   },
   { path: "/reports", label: "Reports", icon: AssessmentOutlined },
+  { path: "/staff", label: "Staff & Roles", icon: FamilyRestroomOutlined, adminOnly: true },
 ];
 
 export default function Layout() {
@@ -161,7 +162,7 @@ export default function Layout() {
         </div>
 
         <nav className="crm-nav" aria-label="Main navigation">
-          {sidebarPages.map(({ path, label, icon: Icon }) => (
+          {sidebarPages.filter((page) => !page.adminOnly || user?.can_manage).map(({ path, label, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}

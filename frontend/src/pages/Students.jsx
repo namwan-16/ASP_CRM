@@ -1,58 +1,11 @@
 import { useMemo, useState } from "react";
 import "./Students.css";
+import api from "../api/client";
+import { errorMessage, studentRecord } from "../api/crm";
+import useRecords from "../hooks/useRecords";
+import { useAuth } from "../context/AuthContext";
+import RequestState from "../components/RequestState";
 
-const initialStudents = [
-  {
-    id: "ASP-1001",
-    firstName: "Ava",
-    lastName: "Thompson",
-    level: "Year 7",
-    subject: "Mathematics",
-    guardian: "Sarah Thompson",
-    permissionToTravelAlone: "No",
-    status: "Active",
-  },
-  {
-    id: "ASP-1002",
-    firstName: "Noah",
-    lastName: "Williams",
-    level: "Year 8",
-    subject: "Physical Sciences",
-    guardian: "Michael Williams",
-    permissionToTravelAlone: "Yes",
-    status: "Active",
-  },
-  {
-    id: "ASP-1003",
-    firstName: "Mia",
-    lastName: "Chen",
-    level: "Year 9",
-    subject: "Mathematics",
-    guardian: "Linda Chen",
-    permissionToTravelAlone: "No",
-    status: "Active",
-  },
-  {
-    id: "ASP-1004",
-    firstName: "Oliver",
-    lastName: "Brown",
-    level: "Year 10",
-    subject: "Physical Sciences",
-    guardian: "James Brown",
-    permissionToTravelAlone: "No",
-    status: "Inactive",
-  },
-  {
-    id: "ASP-1005",
-    firstName: "Isla",
-    lastName: "Wilson",
-    level: "Year 7",
-    subject: "Physical Sciences",
-    guardian: "Emily Wilson",
-    permissionToTravelAlone: "Yes",
-    status: "Active",
-  },
-];
 
 function CloseIcon() {
   return (
@@ -71,7 +24,7 @@ function SearchIcon() {
   );
 }
 
-function StudentDetailsDialog({ student, onClose }) {
+function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
   if (!student) return null;
 
   return (
@@ -106,6 +59,10 @@ function StudentDetailsDialog({ student, onClose }) {
         </div>
 
         <dl className="students-details">
+          <div><dt>Date of birth</dt><dd>{student.date_of_birth}</dd></div>
+          <div><dt>School</dt><dd>{student.school || "Not recorded"}</dd></div>
+          <div><dt>Medical information</dt><dd>{student.medical_information || "Not recorded"}</dd></div>
+          <div><dt>Special circumstances</dt><dd>{student.special_circumstances || "Not recorded"}</dd></div>
           <div>
             <dt>Student ID</dt>
             <dd>{student.id}</dd>
@@ -139,6 +96,8 @@ function StudentDetailsDialog({ student, onClose }) {
         </dl>
 
         <div className="students-form__actions">
+          {onEdit && <button className="students-secondary-button" type="button" onClick={onEdit}>Edit</button>}
+          {onDelete && <button className="students-secondary-button" type="button" onClick={onDelete}>Delete</button>}
           <button
             className="students-secondary-button"
             type="button"
@@ -152,31 +111,38 @@ function StudentDetailsDialog({ student, onClose }) {
   );
 }
 
-function AddStudentDialog({ onClose, onAdd }) {
+function AddStudentDialog({ onClose, onAdd, guardians, student }) {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    level: "",
-    subject: "",
-    guardian: "",
-    permissionToTravelAlone: "",
+    firstName: student?.firstName || "",
+    lastName: student?.lastName || "",
+    level: student?.level || "",
+    subject: student?.subject || "",
+    guardian: student?.guardianId || "",
+    permissionToTravelAlone: student?.permissionToTravelAlone || "No",
+    date_of_birth: student?.date_of_birth || "",
+    school: student?.school || "",
+    email: student?.email || "",
+    phone: student?.phone || "",
+    medical_information: student?.medical_information || "",
+    special_circumstances: student?.special_circumstances || "",
+    relationship: student?.relationship || "Guardian",
+    status: student?.status || "Active",
   });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    const newStudent = {
-      ...formData,
-      id: `ASP-${Date.now().toString().slice(-5)}`,
-      status: "Active",
-    };
-
-    onAdd(newStudent);
+    setError("");
+    setSaving(true);
+    try { await onAdd(formData); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -195,7 +161,7 @@ function AddStudentDialog({ onClose, onAdd }) {
         <div className="students-dialog__heading">
           <div>
             <p className="students-page__eyebrow">Student records</p>
-            <h2 id="add-student-title">Add student</h2>
+            <h2 id="add-student-title">{student ? "Edit student" : "Add student"}</h2>
           </div>
 
           <button
@@ -241,6 +207,7 @@ function AddStudentDialog({ onClose, onAdd }) {
               Level
               <select
                 name="level"
+                aria-label="Level"
                 value={formData.level}
                 onChange={handleChange}
                 required
@@ -259,6 +226,7 @@ function AddStudentDialog({ onClose, onAdd }) {
               Subject
               <select
                 name="subject"
+                aria-label="Subject"
                 value={formData.subject}
                 onChange={handleChange}
                 required
@@ -270,16 +238,26 @@ function AddStudentDialog({ onClose, onAdd }) {
             </label>
           </div>
 
+          <div className="students-form__row">
+            <label>Date of birth<input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} required /></label>
+            <label>School<input name="school" value={formData.school} onChange={handleChange} /></label>
+          </div>
+          <div className="students-form__row">
+            <label>Email<input type="email" name="email" value={formData.email} onChange={handleChange} /></label>
+            <label>Phone<input type="tel" name="phone" value={formData.phone} onChange={handleChange} /></label>
+          </div>
           <label>
-            Guardian name
-            <input
+            Primary guardian
+            <select
               name="guardian"
               value={formData.guardian}
               onChange={handleChange}
-              placeholder="Enter guardian name"
-              required
-            />
+            >
+              <option value="">No primary guardian selected</option>
+              {guardians.map((guardian) => <option key={guardian.id} value={guardian.id}>{guardian.first_name} {guardian.last_name} ({guardian.phone})</option>)}
+            </select>
           </label>
+          <label>Relationship<input name="relationship" value={formData.relationship} onChange={handleChange} /></label>
 
           <label>
             Permission to travel alone
@@ -295,10 +273,10 @@ function AddStudentDialog({ onClose, onAdd }) {
             </select>
           </label>
 
-          <p className="students-form__note">
-            This prototype stores new records in the page only. They will be
-            cleared when you refresh.
-          </p>
+          <label>Medical information<textarea name="medical_information" value={formData.medical_information} onChange={handleChange} /></label>
+          <label>Special circumstances<textarea name="special_circumstances" value={formData.special_circumstances} onChange={handleChange} /></label>
+          <label>Status<select name="status" value={formData.status} onChange={handleChange}><option>Active</option><option>Inactive</option></select></label>
+          {error && <p className="crm-message crm-message--error" role="alert">{error}</p>}
 
           <div className="students-form__actions">
             <button
@@ -308,8 +286,8 @@ function AddStudentDialog({ onClose, onAdd }) {
             >
               Cancel
             </button>
-            <button className="students-primary-button" type="submit">
-              Add student
+            <button className="students-primary-button" type="submit" disabled={saving}>
+              {saving ? "Saving..." : student ? "Save changes" : "Add student"}
             </button>
           </div>
         </form>
@@ -319,7 +297,13 @@ function AddStudentDialog({ onClose, onAdd }) {
 }
 
 export default function Students() {
-  const [students, setStudents] = useState(initialStudents);
+  const records = useRecords("/students/");
+  const guardianRecords = useRecords("/guardians/");
+  const students = useMemo(() => records.data.map(studentRecord), [records.data]);
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [actionError, setActionError] = useState("");
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All levels");
   const [subjectFilter, setSubjectFilter] = useState("All subjects");
@@ -352,9 +336,26 @@ export default function Students() {
     });
   }, [students, search, levelFilter, subjectFilter, statusFilter]);
 
-  function handleAddStudent(student) {
-    setStudents((current) => [student, ...current]);
+  async function handleAddStudent(student) {
+    const data = { first_name: student.firstName, last_name: student.lastName, date_of_birth: student.date_of_birth,
+      school: student.school, year_level: student.level, subject: student.subject, email: student.email, phone: student.phone,
+      medical_information: student.medical_information, special_circumstances: student.special_circumstances,
+      permission_to_travel_alone: student.permissionToTravelAlone === "Yes", is_active: student.status === "Active",
+      guardian_id: student.guardian ? Number(student.guardian) : null, guardian_relationship: student.relationship };
+    if (editingStudent) await api.patch(`/students/${editingStudent.apiId}/`, data);
+    else await api.post("/students/", data);
+    records.refresh();
     setShowAddDialog(false);
+    setEditingStudent(null);
+  }
+
+  async function deleteStudent() {
+    if (!window.confirm(`Delete ${selectedStudent.firstName} ${selectedStudent.lastName}?`)) return;
+    try {
+      await api.delete(`/students/${selectedStudent.apiId}/`);
+      setSelectedStudent(null);
+      records.refresh();
+    } catch (requestError) { setActionError(errorMessage(requestError)); }
   }
 
   return (
@@ -367,15 +368,17 @@ export default function Students() {
           </p>
         </div>
 
-        <button
+        {canManage && <button
           className="students-primary-button"
           type="button"
-          onClick={() => setShowAddDialog(true)}
+          onClick={() => { setEditingStudent(null); setShowAddDialog(true); }}
         >
           <span aria-hidden="true">+</span>
           Add student
-        </button>
+        </button>}
       </header>
+      <RequestState loading={records.loading || guardianRecords.loading} error={records.error || guardianRecords.error} onRetry={() => { records.refresh(); guardianRecords.refresh(); }} />
+      {actionError && <p className="crm-message crm-message--error" role="alert">{actionError}</p>}
 
       <section className="students-panel" aria-label="Student records">
         <div className="students-toolbar">
@@ -441,7 +444,6 @@ export default function Students() {
             Showing <strong>{filteredStudents.length}</strong> of{" "}
             <strong>{students.length}</strong> students
           </span>
-          <span className="students-demo-label">Prototype data</span>
         </div>
 
         {filteredStudents.length > 0 ? (
@@ -513,6 +515,8 @@ export default function Students() {
         <AddStudentDialog
           onClose={() => setShowAddDialog(false)}
           onAdd={handleAddStudent}
+          guardians={guardianRecords.data}
+          student={editingStudent}
         />
       )}
 
@@ -520,6 +524,8 @@ export default function Students() {
         <StudentDetailsDialog
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
+          onEdit={canManage ? () => { setEditingStudent(selectedStudent); setSelectedStudent(null); setShowAddDialog(true); } : null}
+          onDelete={canManage ? deleteStudent : null}
         />
       )}
     </main>

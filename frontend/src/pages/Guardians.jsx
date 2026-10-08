@@ -1,61 +1,11 @@
 import { useMemo, useState } from "react";
 import "./Guardians.css";
+import api from "../api/client";
+import { errorMessage, guardianRecord } from "../api/crm";
+import useRecords from "../hooks/useRecords";
+import { useAuth } from "../context/AuthContext";
+import RequestState from "../components/RequestState";
 
-const studentOptions = [
-  "Ava Thompson",
-  "Noah Williams",
-  "Mia Chen",
-  "Oliver Brown",
-  "Isla Wilson",
-];
-
-const initialGuardians = [
-  {
-    id: "G-1001",
-    firstName: "Sarah",
-    lastName: "Thompson",
-    relationship: "Mother",
-    phone: "0400 000 001",
-    email: "sarah.thompson@example.com",
-    studentNames: ["Ava Thompson"],
-  },
-  {
-    id: "G-1002",
-    firstName: "Michael",
-    lastName: "Williams",
-    relationship: "Father",
-    phone: "0400 000 002",
-    email: "michael.williams@example.com",
-    studentNames: ["Noah Williams"],
-  },
-  {
-    id: "G-1003",
-    firstName: "Linda",
-    lastName: "Chen",
-    relationship: "Mother",
-    phone: "0400 000 003",
-    email: "linda.chen@example.com",
-    studentNames: ["Mia Chen"],
-  },
-  {
-    id: "G-1004",
-    firstName: "James",
-    lastName: "Brown",
-    relationship: "Father",
-    phone: "0400 000 004",
-    email: "james.brown@example.com",
-    studentNames: ["Oliver Brown"],
-  },
-  {
-    id: "G-1005",
-    firstName: "Emily",
-    lastName: "Wilson",
-    relationship: "Mother",
-    phone: "0400 000 005",
-    email: "emily.wilson@example.com",
-    studentNames: ["Isla Wilson"],
-  },
-];
 
 function CloseIcon() {
   return (
@@ -74,7 +24,7 @@ function SearchIcon() {
   );
 }
 
-function GuardianDetailsDialog({ guardian, onClose }) {
+function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
   if (!guardian) return null;
 
   return (
@@ -146,6 +96,8 @@ function GuardianDetailsDialog({ guardian, onClose }) {
         </dl>
 
         <div className="guardians-form__actions">
+          {onEdit && <button className="guardians-secondary-button" type="button" onClick={onEdit}>Edit</button>}
+          {onDelete && <button className="guardians-secondary-button" type="button" onClick={onDelete}>Delete</button>}
           <button
             className="guardians-secondary-button"
             type="button"
@@ -159,49 +111,46 @@ function GuardianDetailsDialog({ guardian, onClose }) {
   );
 }
 
-function AddGuardianDialog({ onClose, onAdd }) {
+function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    relationship: "",
-    phone: "",
-    email: "",
-    studentNames: [],
+    firstName: guardian?.firstName || "",
+    lastName: guardian?.lastName || "",
+    relationship: guardian?.students[0]?.relationship || "Guardian",
+    phone: guardian?.phone || "",
+    email: guardian?.email || "",
+    studentIds: guardian?.studentIds || [],
   });
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [linkFlags, setLinkFlags] = useState(Object.fromEntries((guardian?.students || []).map((link) => [link.student, link])));
 
   function handleChange(event) {
     const { name, value } = event.target;
     setFormData((current) => ({ ...current, [name]: value }));
   }
 
-  function handleStudentToggle(studentName) {
+  function handleStudentToggle(studentId) {
     setError("");
 
     setFormData((current) => {
-      const alreadySelected = current.studentNames.includes(studentName);
+      const alreadySelected = current.studentIds.includes(studentId);
 
       return {
         ...current,
-        studentNames: alreadySelected
-          ? current.studentNames.filter((name) => name !== studentName)
-          : [...current.studentNames, studentName],
+        studentIds: alreadySelected
+          ? current.studentIds.filter((id) => id !== studentId)
+          : [...current.studentIds, studentId],
       };
     });
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    if (formData.studentNames.length === 0) {
-      setError("Select at least one student to link to this guardian.");
-      return;
-    }
-
-    onAdd({
-      ...formData,
-      id: `G-${Date.now().toString().slice(-5)}`,
-    });
+    setError("");
+    setSaving(true);
+    try { await onAdd({ ...formData, linkFlags }); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -220,7 +169,7 @@ function AddGuardianDialog({ onClose, onAdd }) {
         <div className="guardians-dialog__heading">
           <div>
             <p className="guardians-dialog__eyebrow">Guardian records</p>
-            <h2 id="add-guardian-title">Add guardian</h2>
+            <h2 id="add-guardian-title">{guardian ? "Edit guardian" : "Add guardian"}</h2>
           </div>
 
           <button
@@ -304,17 +253,22 @@ function AddGuardianDialog({ onClose, onAdd }) {
             <p>Select every student connected to this guardian.</p>
 
             <div className="guardians-student-options">
-              {studentOptions.map((studentName) => (
-                <label key={studentName}>
+              {students.map((student) => (
+                <label key={student.id}>
                   <input
                     type="checkbox"
-                    checked={formData.studentNames.includes(studentName)}
-                    onChange={() => handleStudentToggle(studentName)}
+                    checked={formData.studentIds.includes(student.id)}
+                    onChange={() => handleStudentToggle(student.id)}
                   />
-                  <span>{studentName}</span>
+                  <span>{student.first_name} {student.last_name} (ASP-{student.id})</span>
                 </label>
               ))}
             </div>
+            {students.filter((student) => formData.studentIds.includes(student.id)).map((student) => <div className="crm-inline-actions" key={`flags-${student.id}`}>
+              <span>{student.first_name} {student.last_name}</span>
+              <label><input type="checkbox" checked={linkFlags[student.id]?.is_primary_contact || false} onChange={(event) => setLinkFlags((current) => ({ ...current, [student.id]: { ...current[student.id], is_primary_contact: event.target.checked } }))} />Primary contact</label>
+              <label><input type="checkbox" checked={linkFlags[student.id]?.is_emergency_contact ?? true} onChange={(event) => setLinkFlags((current) => ({ ...current, [student.id]: { ...current[student.id], is_emergency_contact: event.target.checked } }))} />Emergency contact</label>
+            </div>)}
           </fieldset>
 
           {error && (
@@ -323,10 +277,6 @@ function AddGuardianDialog({ onClose, onAdd }) {
             </p>
           )}
 
-          <p className="guardians-form__note">
-            This prototype stores new records in the page only. They will be
-            cleared when you refresh.
-          </p>
 
           <div className="guardians-form__actions">
             <button
@@ -336,8 +286,8 @@ function AddGuardianDialog({ onClose, onAdd }) {
             >
               Cancel
             </button>
-            <button className="guardians-primary-button" type="submit">
-              Add guardian
+            <button className="guardians-primary-button" type="submit" disabled={saving}>
+              {saving ? "Saving..." : guardian ? "Save changes" : "Add guardian"}
             </button>
           </div>
         </form>
@@ -347,7 +297,13 @@ function AddGuardianDialog({ onClose, onAdd }) {
 }
 
 export default function Guardians() {
-  const [guardians, setGuardians] = useState(initialGuardians);
+  const records = useRecords("/guardians/");
+  const studentRecords = useRecords("/students/");
+  const guardians = useMemo(() => records.data.map(guardianRecord), [records.data]);
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+  const [editingGuardian, setEditingGuardian] = useState(null);
+  const [actionError, setActionError] = useState("");
   const [search, setSearch] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedGuardian, setSelectedGuardian] = useState(null);
@@ -373,9 +329,24 @@ export default function Guardians() {
     });
   }, [guardians, search]);
 
-  function handleAddGuardian(guardian) {
-    setGuardians((current) => [guardian, ...current]);
+  async function handleAddGuardian(guardian) {
+    const data = { first_name: guardian.firstName, last_name: guardian.lastName, phone: guardian.phone, email: guardian.email,
+      links: guardian.studentIds.map((student) => {
+        const existing = guardian.linkFlags[student];
+        return { student, relationship: guardian.relationship, is_primary_contact: existing?.is_primary_contact || false,
+          is_emergency_contact: existing?.is_emergency_contact ?? true };
+      }) };
+    if (editingGuardian) await api.patch(`/guardians/${editingGuardian.id}/`, data);
+    else await api.post("/guardians/", data);
+    records.refresh();
     setShowAddDialog(false);
+    setEditingGuardian(null);
+  }
+
+  async function deleteGuardian() {
+    if (!window.confirm(`Delete ${selectedGuardian.firstName} ${selectedGuardian.lastName} and unlink their students?`)) return;
+    try { await api.delete(`/guardians/${selectedGuardian.id}/`); setSelectedGuardian(null); records.refresh(); }
+    catch (requestError) { setActionError(errorMessage(requestError)); }
   }
 
   return (
@@ -388,15 +359,17 @@ export default function Guardians() {
           </p>
         </div>
 
-        <button
+        {canManage && <button
           className="guardians-primary-button"
           type="button"
-          onClick={() => setShowAddDialog(true)}
+          onClick={() => { setEditingGuardian(null); setShowAddDialog(true); }}
         >
           <span aria-hidden="true">+</span>
           Add guardian
-        </button>
+        </button>}
       </header>
+      <RequestState loading={records.loading || studentRecords.loading} error={records.error || studentRecords.error} onRetry={() => { records.refresh(); studentRecords.refresh(); }} />
+      {actionError && <p className="crm-message crm-message--error" role="alert">{actionError}</p>}
 
       <section className="guardians-panel" aria-label="Guardian records">
         <div className="guardians-toolbar">
@@ -419,7 +392,6 @@ export default function Guardians() {
             Showing <strong>{filteredGuardians.length}</strong> of{" "}
             <strong>{guardians.length}</strong> guardians
           </span>
-          <span className="guardians-demo-label">Prototype data</span>
         </div>
 
         {filteredGuardians.length > 0 ? (
@@ -503,6 +475,8 @@ export default function Guardians() {
         <AddGuardianDialog
           onClose={() => setShowAddDialog(false)}
           onAdd={handleAddGuardian}
+          students={studentRecords.data}
+          guardian={editingGuardian}
         />
       )}
 
@@ -510,6 +484,8 @@ export default function Guardians() {
         <GuardianDetailsDialog
           guardian={selectedGuardian}
           onClose={() => setSelectedGuardian(null)}
+          onEdit={canManage ? () => { setEditingGuardian(selectedGuardian); setSelectedGuardian(null); setShowAddDialog(true); } : null}
+          onDelete={canManage ? deleteGuardian : null}
         />
       )}
     </main>

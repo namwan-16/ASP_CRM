@@ -8,6 +8,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (config.data instanceof FormData) config.headers.delete("Content-Type");
   const access = localStorage.getItem("accessToken");
   if (access) {
     config.headers.Authorization = `Bearer ${access}`;

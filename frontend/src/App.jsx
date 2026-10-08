@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
-import Layout, { sidebarPages } from "./components/Layout";
+import Layout from "./components/Layout";
 
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -12,15 +12,11 @@ import Classes from "./pages/Classes";
 import EmergencyLookup from "./pages/EmergencyLookup";
 import ProgressNotes from "./pages/ProgressNotes";
 import Reports from "./pages/Reports";
+import Attendance from "./pages/Attendance";
+import Registrations from "./pages/Registrations";
+import Staff from "./pages/Staff";
+import "./features.css";
 
-function PlaceholderPage({ title }) {
-  return (
-    <main className="crm-placeholder">
-      <h1>{title}</h1>
-      <p>This page is ready for development.</p>
-    </main>
-  );
-}
 
 export default function App() {
   return (
@@ -35,16 +31,10 @@ export default function App() {
           <Route path="/guardians" element={<Guardians />} />
           <Route path="/classes" element={<Classes />} />
           <Route path="/progress-notes" element={<ProgressNotes />} />
-          <Route path="/Reports" element={<Reports />} />
-          {sidebarPages
-            .filter((page) => page.path !== "/dashboard")
-            .map((page) => (
-              <Route
-                key={page.path}
-                path={page.path}
-                element={<PlaceholderPage title={page.label} />}
-              />
-            ))}
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/registrations" element={<Registrations />} />
+          <Route path="/staff" element={<Staff />} />
 
           <Route
             path="/emergency-lookup"

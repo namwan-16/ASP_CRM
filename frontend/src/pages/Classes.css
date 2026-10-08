@@ -202,6 +202,7 @@
 }
 
 .classes-table-wrap {
+  position: relative;
   overflow-x: auto;
   padding: 0 20px 20px;
   scrollbar-color: #9aabba #edf2f6;

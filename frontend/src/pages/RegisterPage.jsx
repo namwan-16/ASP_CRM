@@ -141,6 +141,7 @@ export default function RegisterPage() {
 
     try {
       await register(form);
+      window.alert("Account created. An ASP administrator must approve your account before you can sign in.");
       navigate("/login", { replace: true });
     } catch (requestError) {
       const data = requestError.response?.data;

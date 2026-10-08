@@ -1,6 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
+import api from "../api/client";
+import { errorMessage } from "../api/crm";
+import { useAuth } from "../context/AuthContext";
+import RequestState from "../components/RequestState";
 
 const dashboardActions = [
   {
@@ -135,7 +139,17 @@ function getRoleLabel(user) {
   return "ASP team member";
 }
 
-export default function Dashboard({ user }) {
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    api.get("/dashboard/", { signal: controller.signal }).then((response) => setStats(response.data)).catch((requestError) => {
+      if (!controller.signal.aborted) setError(errorMessage(requestError));
+    });
+    return () => controller.abort();
+  }, []);
   const roleLabel = getRoleLabel(user);
 
   return (
@@ -150,6 +164,13 @@ export default function Dashboard({ user }) {
 
         <span className="dashboard-page__role">{roleLabel}</span>
       </div>
+      <RequestState loading={!stats && !error} error={error} />
+      {stats && <section className="crm-stats" aria-label="CRM summary">
+        <div><strong>{stats.students}</strong><span>Students</span></div>
+        <div><strong>{stats.guardians}</strong><span>Guardians</span></div>
+        <div><strong>{stats.sessions_today}</strong><span>Sessions today</span></div>
+        <div><strong>{stats.progress_notes}</strong><span>Progress notes</span></div>
+      </section>}
 
       <section
         className="dashboard-welcome"

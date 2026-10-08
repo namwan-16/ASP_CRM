@@ -177,6 +177,7 @@
 
 /* Keep the table readable; scroll horizontally on smaller screens. */
 .guardians-table-wrap {
+  position: relative;
   width: 100%;
   min-width: 0;
   overflow-x: auto;
