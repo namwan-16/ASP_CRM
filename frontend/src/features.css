@@ -1,0 +1,29 @@
+.crm-page { max-width: 1250px; margin: 0 auto; padding: 24px; }
+.crm-page h1 { font-size: 28px; }
+.crm-page h2 { font-size: 20px; margin-top: 24px; }
+.crm-inline-actions, .crm-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.crm-form { margin: 20px 0; }
+.crm-form label { display: grid; gap: 6px; min-width: 160px; flex: 1; }
+.crm-form input, .crm-form select, .crm-form textarea, .crm-table input, .crm-table select { border: 1px solid var(--color-border); border-radius: 6px; padding: 9px; max-width: 100%; min-width: 0; background: white; color: inherit; }
+.crm-page button, .crm-inline-actions > button, .crm-message button { padding: 9px 14px; border: 1px solid var(--color-border); border-radius: 6px; background: white; color: var(--color-primary); cursor: pointer; }
+.crm-page button[type="submit"] { background: var(--color-accent); color: white; }
+button:disabled { opacity: .55; cursor: wait; }
+.crm-message { padding: 12px 0; overflow-wrap: anywhere; }
+.crm-message--error { color: var(--color-danger); }
+.crm-message--success { color: var(--color-accent); }
+.crm-table-wrap { overflow-x: auto; }
+.crm-table { border-collapse: collapse; width: 100%; text-align: left; }
+.crm-table th, .crm-table td { padding: 12px; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.crm-table th { background: var(--color-primary-soft); white-space: nowrap; }
+.crm-table input { width: 100%; min-width: 140px; }
+.crm-table select { min-width: 115px; }
+.crm-stats { display: flex; flex-wrap: wrap; gap: 24px; margin: 20px 0; }
+.crm-stats div { display: grid; gap: 4px; }
+.crm-stats strong { font-size: 26px; }
+.crm-stats span { color: var(--color-muted); }
+.crm-inline-actions a { padding: 9px 0; }
+.crm-layout h1, .crm-layout h2, .crm-layout h3 { letter-spacing: 0; }
+.rp-top { flex-wrap: wrap; }
+.rp-tr > span { min-width: 0; overflow-wrap: anywhere; }
+.students-form textarea { border: 1px solid var(--color-border); border-radius: 6px; padding: 10px; min-height: 70px; width: 100%; }
+@media (max-width: 600px) { .crm-page { padding: 16px; } .crm-form label { min-width: 100%; } }
