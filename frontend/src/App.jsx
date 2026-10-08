@@ -3,9 +3,15 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout, { sidebarPages } from "./components/Layout";
 
-import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage";
+import Students from "./pages/Students";
+import Guardians from "./pages/Guardians";
+import Classes from "./pages/Classes";
+import EmergencyLookup from "./pages/EmergencyLookup";
+import ProgressNotes from "./pages/ProgressNotes";
+import Reports from "./pages/Reports";
 
 function PlaceholderPage({ title }) {
   return (
@@ -25,7 +31,11 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
-
+          <Route path="/students" element={<Students />} />
+          <Route path="/guardians" element={<Guardians />} />
+          <Route path="/classes" element={<Classes />} />
+          <Route path="/progress-notes" element={<ProgressNotes />} />
+          <Route path="/Reports" element={<Reports />} />
           {sidebarPages
             .filter((page) => page.path !== "/dashboard")
             .map((page) => (
@@ -38,15 +48,12 @@ export default function App() {
 
           <Route
             path="/emergency-lookup"
-            element={<PlaceholderPage title="Emergency Lookup" />}
-          />
+            element={<EmergencyLookup />} />
         </Route>
+        
       </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to="/dashboard" replace />}
-      />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

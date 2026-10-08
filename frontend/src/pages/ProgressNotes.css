@@ -1,0 +1,47 @@
+.pn-page {
+  --pn-ink: #14324f;
+  --pn-muted: #6b7c8f;
+  --pn-border: #e1e7ee;
+  --pn-accent: #6d4fc2;
+  max-width: 760px;
+  padding: 8px 0 40px;
+  color: var(--pn-ink);
+  font-family: inherit;
+}
+.pn-page * { box-sizing: border-box; }
+
+.pn-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.pn-top h1 { margin: 0; font-size: 26px; }
+.pn-top p { margin: 2px 0 0; color: var(--pn-muted); font-size: 15px; }
+
+.pn-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 10px;
+  padding: 10px 16px; background: #2a5c8d; color: #fff; cursor: pointer;
+  font: 600 14px inherit; font-family: inherit;
+}
+.pn-btn:hover { background: #2a5c8d; }
+
+.pn-form { display: grid; gap: 10px; background: #fff; border: 1px solid var(--pn-border); border-radius: 14px; padding: 16px; margin-bottom: 16px; }
+.pn-form select, .pn-form textarea {
+  width: 100%; border: 1.5px solid var(--pn-border); border-radius: 10px; padding: 10px 12px;
+  font-size: 15px; font-family: inherit; color: var(--pn-ink); background: #f6f8fb; outline: 0;
+}
+.pn-form textarea { resize: vertical; }
+.pn-form select:focus, .pn-form textarea:focus { border-color: var(--pn-accent); background: #fff; }
+.pn-form .pn-btn { justify-self: start; }
+
+.pn-search {
+  display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 14px; margin-bottom: 14px;
+  background: #fff; border: 1.5px solid var(--pn-border); border-radius: 12px; color: var(--pn-muted);
+}
+.pn-search:focus-within { border-color: #2a5c8d; }
+.pn-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 15px; font-family: inherit; color: var(--pn-ink); }
+
+.pn-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid var(--pn-border); border-radius: 14px; }
+.pn-list li { padding: 16px 20px; border-bottom: 1px solid var(--pn-border); }
+.pn-list li:last-child { border-bottom: 0; }
+.pn-row { display: flex; justify-content: space-between; gap: 12px; }
+.pn-row strong { font-size: 16px; }
+.pn-row span { color: var(--pn-muted); font-size: 13px; }
+.pn-list p { margin: 4px 0 0; font-size: 15px; line-height: 1.5; }
+.pn-empty { text-align: center; color: var(--pn-muted); }
