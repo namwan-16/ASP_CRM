@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout, { sidebarPages } from "./components/Layout";
 
@@ -12,6 +11,9 @@ import Classes from "./pages/Classes";
 import EmergencyLookup from "./pages/EmergencyLookup";
 import ProgressNotes from "./pages/ProgressNotes";
 import Reports from "./pages/Reports";
+import Attendance from "./pages/Attendance";
+import Registrations from "./pages/Registrations";
+
 
 function PlaceholderPage({ title }) {
   return (
@@ -34,6 +36,9 @@ export default function App() {
           <Route path="/students" element={<Students />} />
           <Route path="/guardians" element={<Guardians />} />
           <Route path="/classes" element={<Classes />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/registrations" element={<Registrations />} />
+
           <Route path="/progress-notes" element={<ProgressNotes />} />
           <Route path="/Reports" element={<Reports />} />
           {sidebarPages
@@ -46,11 +51,8 @@ export default function App() {
               />
             ))}
 
-          <Route
-            path="/emergency-lookup"
-            element={<EmergencyLookup />} />
+          <Route path="/emergency-lookup" element={<EmergencyLookup />} />
         </Route>
-        
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
