@@ -1,46 +1,21 @@
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import "./Reports.css";
+import useRecords from "../hooks/useRecords";
+import RequestState from "../components/RequestState";
 
-// ---- Sample data: replace with your API data -------------------------------
-const CLASSES = ["Year 3 Maths", "Year 5 Reading", "Year 6 Science"];
 
-const SESSIONS = [
-  { date: "2026-09-08", cls: "Year 3 Maths", present: 15, total: 16, late: 1 },
-  { date: "2026-09-15", cls: "Year 3 Maths", present: 14, total: 16, late: 2 },
-  { date: "2026-09-22", cls: "Year 3 Maths", present: 16, total: 16, late: 0 },
-  { date: "2026-09-10", cls: "Year 5 Reading", present: 17, total: 19, late: 3 },
-  { date: "2026-09-24", cls: "Year 5 Reading", present: 18, total: 19, late: 1 },
-  { date: "2026-09-12", cls: "Year 6 Science", present: 12, total: 14, late: 2 },
-  { date: "2026-10-03", cls: "Year 6 Science", present: 13, total: 14, late: 0 },
-];
-
-const LATE = [
-  { date: "2026-09-15", student: "Liam Nguyen", cls: "Year 3 Maths", minutes: 12 },
-  { date: "2026-09-10", student: "Amelia Carter", cls: "Year 5 Reading", minutes: 8 },
-  { date: "2026-09-12", student: "Zoe Patel", cls: "Year 6 Science", minutes: 15 },
-];
-
-const ENROLMENT = [
-  { cls: "Year 3 Maths", enrolled: 16, capacity: 20 },
-  { cls: "Year 5 Reading", enrolled: 19, capacity: 20 },
-  { cls: "Year 6 Science", enrolled: 14, capacity: 18 },
-];
-
-const ACTIVITY = [
-  { date: "2026-10-05", user: "TD", action: "Added a progress note for Amelia Carter" },
-  { date: "2026-10-03", user: "MA", action: "Recorded attendance for Year 6 Science" },
-  { date: "2026-10-01", user: "TD", action: "Uploaded registrations CSV" },
-];
-// -----------------------------------------------------------------------------
-
-const TABS = ["Attendance", "Late arrivals", "Enrolment", "Activity"];
+const TABS = ["Attendance", "Late arrivals", "Enrolment", "Progress notes"];
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const fmt = (d) =>
   new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 
 function csvDownload(name, columns, rows) {
-  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const esc = (v) => {
+    let value = String(v ?? "");
+    if (/^[\s]*[=+@-]/.test(value)) value = "'" + value;
+    return `"${value.replace(/"/g, '""')}"`;
+  };
   const lines = [columns.map((c) => esc(c.label)).join(",")];
   rows.forEach((r) => lines.push(columns.map((c) => esc(r[c.key])).join(",")));
   const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
@@ -50,13 +25,25 @@ function csvDownload(name, columns, rows) {
 }
 
 export default function Reports() {
+  const sessions = useRecords("/sessions/");
+  const attendance = useRecords("/attendance/");
+  const notes = useRecords("/progress-notes/");
+  const CLASSES = [...new Set(sessions.data.map((item) => item.course_name))];
+  const SESSIONS = sessions.data.map((item) => {
+    const marked = attendance.data.filter((row) => row.session === item.id);
+    return { date: item.date, cls: item.course_name, present: marked.filter((row) => ["present", "late"].includes(row.status)).length,
+      total: marked.length, late: marked.filter((row) => row.status === "late").length };
+  });
+  const LATE = attendance.data.filter((row) => row.status === "late").map((row) => ({ date: row.session_date, cls: row.course_name, student: row.student_name, notes: row.notes }));
+  const ENROLMENT = sessions.data.map((row) => ({ cls: row.course_name, date: row.date, enrolled: row.students.length, capacity: row.capacity }));
+  const ACTIVITY = notes.data.map((row) => ({ date: row.date, user: row.author_name || "Former staff", action: `${row.student_name}: ${row.text}` }));
   const [tab, setTab] = useState("Attendance");
-  const [from, setFrom] = useState("2026-09-01");
-  const [to, setTo] = useState("2026-10-06");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [cls, setCls] = useState("All");
 
   const report = useMemo(() => {
-    const inRange = (r) => r.date >= from && r.date <= to && (cls === "All" || r.cls === cls);
+    const inRange = (r) => (!from || r.date >= from) && (!to || r.date <= to) && (cls === "All" || r.cls === cls);
 
     if (tab === "Attendance") {
       const s = SESSIONS.filter(inRange);
@@ -88,25 +75,23 @@ export default function Reports() {
 
     if (tab === "Late arrivals") {
       const rows = LATE.filter(inRange).map((r) => ({ ...r, when: fmt(r.date) }));
-      const avg = rows.length ? Math.round(rows.reduce((n, r) => n + r.minutes, 0) / rows.length) : 0;
       return {
         stats: [
           { n: rows.length, l: "Late arrivals" },
-          { n: `${avg} min`, l: "Average lateness" },
           { n: new Set(rows.map((r) => r.student)).size, l: "Students affected" },
         ],
         columns: [
           { key: "student", label: "Student" },
           { key: "cls", label: "Class" },
           { key: "when", label: "Date" },
-          { key: "minutes", label: "Minutes late" },
+          { key: "notes", label: "Notes" },
         ],
         rows,
       };
     }
 
     if (tab === "Enrolment") {
-      const rows = ENROLMENT.filter((r) => cls === "All" || r.cls === cls).map((r) => ({
+      const rows = ENROLMENT.filter(inRange).map((r) => ({
         ...r,
         rate: pct(r.enrolled, r.capacity),
       }));
@@ -114,7 +99,7 @@ export default function Reports() {
       const capacity = rows.reduce((n, r) => n + r.capacity, 0);
       return {
         stats: [
-          { n: enrolled, l: "Students enrolled" },
+          { n: enrolled, l: "Session places filled" },
           { n: capacity - enrolled, l: "Spots available" },
           { n: `${pct(enrolled, capacity)}%`, l: "Capacity filled" },
         ],
@@ -128,23 +113,23 @@ export default function Reports() {
       };
     }
 
-    const rows = ACTIVITY.filter((r) => r.date >= from && r.date <= to).map((r) => ({ ...r, when: fmt(r.date) }));
+    const rows = ACTIVITY.filter((r) => (!from || r.date >= from) && (!to || r.date <= to)).map((r) => ({ ...r, when: fmt(r.date) }));
     return {
       stats: [
-        { n: rows.length, l: "Actions logged" },
-        { n: new Set(rows.map((r) => r.user)).size, l: "Active users" },
-        { n: rows[0] ? rows[0].when : "–", l: "Latest activity" },
+        { n: rows.length, l: "Progress notes" },
+        { n: new Set(rows.map((r) => r.user)).size, l: "Note authors" },
+        { n: rows[0] ? rows[0].when : "–", l: "Latest note" },
       ],
       columns: [
         { key: "when", label: "Date" },
         { key: "user", label: "User" },
-        { key: "action", label: "Action" },
+        { key: "action", label: "Note" },
       ],
       rows,
     };
-  }, [tab, from, to, cls]);
+  }, [tab, from, to, cls, sessions.data, attendance.data, notes.data]);
 
-  const hideClass = tab === "Activity";
+  const hideClass = tab === "Progress notes";
   const cols = `repeat(${report.columns.length}, minmax(0, 1fr))`;
 
   return (
@@ -152,7 +137,7 @@ export default function Reports() {
       <div className="rp-top">
         <div>
           <h1>Reports</h1>
-          <p>View attendance, late arrivals, enrolment and activity.</p>
+          <p>View recorded attendance, late arrivals, enrolment and progress notes.</p>
         </div>
         <button
           className="rp-btn"
@@ -163,6 +148,7 @@ export default function Reports() {
           <Download size={16} /> Export CSV
         </button>
       </div>
+      <RequestState loading={sessions.loading || attendance.loading || notes.loading} error={sessions.error || attendance.error || notes.error} onRetry={() => { sessions.refresh(); attendance.refresh(); notes.refresh(); }} />
 
       <div className="rp-tabs" role="tablist">
         {TABS.map((t) => (

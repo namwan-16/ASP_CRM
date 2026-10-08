@@ -1,185 +1,64 @@
 import { useMemo, useState } from "react";
+
 import "./Guardians.css";
 
-// Replace these demo records with records returned by the backend API.
-const studentOptions = [
-  { id: 101, name: "Ava Thompson" },
-  { id: 102, name: "Noah Williams" },
-  { id: 103, name: "Mia Chen" },
-  { id: 104, name: "Oliver Brown" },
-  { id: 105, name: "Isla Wilson" },
-];
+import api from "../api/client";
 
-// Relationship and emergencyContact belong to each student–guardian link,
-// matching the separate Students and Guardians table in the client database.
-const initialGuardians = [
-  {
-    id: 1001,
-    company: "",
-    firstName: "Sarah",
-    lastName: "Thompson",
-    email: "sarah.thompson@example.com",
-    jobTitle: "",
-    businessPhone: "",
-    homePhone: "",
-    mobilePhone: "0400 000 001",
-    faxNumber: "",
-    address: "",
-    city: "",
-    stateProvince: "",
-    postalCode: "",
-    countryRegion: "Australia",
-    webPage: "",
-    notes: "",
-    attachments: [],
-    studentLinks: [
-      {
-        id: 1,
-        studentId: 101,
-        studentName: "Ava Thompson",
-        relationship: "Mother",
-        emergencyContact: true,
-      },
-    ],
-  },
-  {
-    id: 1002,
-    company: "",
-    firstName: "Michael",
-    lastName: "Williams",
-    email: "michael.williams@example.com",
-    jobTitle: "",
-    businessPhone: "",
-    homePhone: "",
-    mobilePhone: "0400 000 002",
-    faxNumber: "",
-    address: "",
-    city: "",
-    stateProvince: "",
-    postalCode: "",
-    countryRegion: "Australia",
-    webPage: "",
-    notes: "",
-    attachments: [],
-    studentLinks: [
-      {
-        id: 2,
-        studentId: 102,
-        studentName: "Noah Williams",
-        relationship: "Father",
-        emergencyContact: true,
-      },
-    ],
-  },
-  {
-    id: 1003,
-    company: "",
-    firstName: "Linda",
-    lastName: "Chen",
-    email: "linda.chen@example.com",
-    jobTitle: "",
-    businessPhone: "",
-    homePhone: "",
-    mobilePhone: "0400 000 003",
-    faxNumber: "",
-    address: "",
-    city: "",
-    stateProvince: "",
-    postalCode: "",
-    countryRegion: "Australia",
-    webPage: "",
-    notes: "",
-    attachments: [],
-    studentLinks: [
-      {
-        id: 3,
-        studentId: 103,
-        studentName: "Mia Chen",
-        relationship: "Mother",
-        emergencyContact: true,
-      },
-    ],
-  },
-  {
-    id: 1004,
-    company: "",
-    firstName: "James",
-    lastName: "Brown",
-    email: "james.brown@example.com",
-    jobTitle: "",
-    businessPhone: "",
-    homePhone: "",
-    mobilePhone: "0400 000 004",
-    faxNumber: "",
-    address: "",
-    city: "",
-    stateProvince: "",
-    postalCode: "",
-    countryRegion: "Australia",
-    webPage: "",
-    notes: "",
-    attachments: [],
-    studentLinks: [
-      {
-        id: 4,
-        studentId: 104,
-        studentName: "Oliver Brown",
-        relationship: "Father",
-        emergencyContact: true,
-      },
-    ],
-  },
-  {
-    id: 1005,
-    company: "",
-    firstName: "Emily",
-    lastName: "Wilson",
-    email: "emily.wilson@example.com",
-    jobTitle: "",
-    businessPhone: "",
-    homePhone: "",
-    mobilePhone: "0400 000 005",
-    faxNumber: "",
-    address: "",
-    city: "",
-    stateProvince: "",
-    postalCode: "",
-    countryRegion: "Australia",
-    webPage: "",
-    notes: "",
-    attachments: [],
-    studentLinks: [
-      {
-        id: 5,
-        studentId: 105,
-        studentName: "Isla Wilson",
-        relationship: "Mother",
-        emergencyContact: true,
-      },
-    ],
-  },
-];
+import { errorMessage, guardianRecord } from "../api/crm";
+
+import useRecords from "../hooks/useRecords";
+
+import { useAuth } from "../context/AuthContext";
+
+import RequestState from "../components/RequestState";
 
 const emptyGuardian = {
   company: "",
+
   firstName: "",
+
   lastName: "",
+
   email: "",
+
   jobTitle: "",
+
   businessPhone: "",
+
   homePhone: "",
+
   mobilePhone: "",
+
   faxNumber: "",
+
   address: "",
+
   city: "",
+
   stateProvince: "",
+
   postalCode: "",
+
   countryRegion: "",
+
   webPage: "",
+
   notes: "",
+
   attachments: [],
+
   studentLinks: [],
 };
+
+function displayValue(value) {
+  return value === null || value === undefined || value === ""
+    ? "Not recorded"
+    : value;
+}
+
+function phoneLink(value) {
+  return `tel:${String(value).replace(/[^+\d]/g, "")}`;
+}
 
 function CloseIcon() {
   return (
@@ -193,35 +72,44 @@ function SearchIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="10.8" cy="10.8" r="6.8" />
+
       <path d="m16 16 4.5 4.5" />
     </svg>
   );
 }
 
-function displayValue(value) {
-  return value?.trim() ? value : "Not recorded";
-}
-
-function phoneLink(value) {
-  return `tel:${value.replace(/[^\d+]/g, "")}`;
-}
-
-function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
+function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
   if (!guardian) return null;
+
+  const studentLinks = Array.isArray(guardian.studentLinks)
+    ? guardian.studentLinks
+    : [];
 
   const details = [
     ["Company", guardian.company],
+
     ["Job Title", guardian.jobTitle],
+
     ["Email Address", guardian.email],
+
     ["Business Phone", guardian.businessPhone],
+
     ["Home Phone", guardian.homePhone],
+
     ["Mobile Phone", guardian.mobilePhone],
+
     ["Fax Number", guardian.faxNumber],
+
     ["Address", guardian.address],
+
     ["City", guardian.city],
+
     ["State/Province", guardian.stateProvince],
+
     ["ZIP/Postal Code", guardian.postalCode],
+
     ["Country/Region", guardian.countryRegion],
+
     ["Web Page", guardian.webPage],
   ];
 
@@ -242,10 +130,12 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
         <div className="guardians-dialog__heading">
           <div>
             <p className="guardians-dialog__eyebrow">Guardian record</p>
+
             <h2 id="guardian-details-title">
               {guardian.firstName} {guardian.lastName}
             </h2>
           </div>
+
           <button
             className="guardians-icon-button"
             type="button"
@@ -260,6 +150,7 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
           {details.map(([label, value]) => (
             <div key={label}>
               <dt>{label}</dt>
+
               <dd>
                 {label === "Email Address" && value ? (
                   <a href={`mailto:${value}`}>{value}</a>
@@ -279,9 +170,10 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
 
         <section className="guardians-details-section">
           <h3>Linked students</h3>
-          {guardian.studentLinks.length ? (
+
+          {studentLinks.length ? (
             <ul>
-              {guardian.studentLinks.map((link) => (
+              {studentLinks.map((link) => (
                 <li key={link.id ?? link.studentId}>
                   <strong>{link.studentName}</strong> —{" "}
                   {displayValue(link.relationship)}
@@ -296,11 +188,13 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
 
         <section className="guardians-details-section">
           <h3>Notes</h3>
+
           <p className="guardians-notes">{displayValue(guardian.notes)}</p>
         </section>
 
         <section className="guardians-details-section">
           <h3>Attachments</h3>
+
           {guardian.attachments?.length ? (
             <ul>
               {guardian.attachments.map((name, index) => (
@@ -313,6 +207,26 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
         </section>
 
         <div className="guardians-form__actions">
+          {onEdit && (
+            <button
+              className="guardians-secondary-button"
+              type="button"
+              onClick={onEdit}
+            >
+              Edit
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              className="guardians-secondary-button"
+              type="button"
+              onClick={onDelete}
+            >
+              Delete
+            </button>
+          )}
+
           <button
             className="guardians-secondary-button"
             type="button"
@@ -320,106 +234,102 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit }) {
           >
             Close
           </button>
-          <button
-            className="guardians-primary-button"
-            type="button"
-            onClick={() => onEdit(guardian)}
-          >
-            Edit guardian
-          </button>
         </div>
       </section>
     </div>
   );
 }
 
-function GuardianFormDialog({ guardian, onClose, onSave }) {
-  const isEditing = Boolean(guardian);
-  const [formData, setFormData] = useState(() =>
-    guardian
-      ? {
-          ...emptyGuardian,
-          ...guardian,
-          studentLinks: guardian.studentLinks.map((link) => ({ ...link })),
-        }
-      : { ...emptyGuardian },
-  );
-  const [newFiles, setNewFiles] = useState([]);
+function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
+  const guardianStudentLinks = Array.isArray(guardian?.studentLinks)
+    ? guardian.studentLinks
+    : [];
+  const [formData, setFormData] = useState(() => ({
+    ...emptyGuardian,
+    firstName: guardian?.firstName || "",
+    lastName: guardian?.lastName || "",
+    relationship: guardianStudentLinks[0]?.relationship || "Guardian",
+    phone: guardian?.phone || guardian?.mobilePhone || "",
+    email: guardian?.email || "",
+    notes: guardian?.notes || "",
+    studentIds: guardianStudentLinks
+      .map((link) => link.studentId ?? link.student)
+      .filter((id) => id !== undefined && id !== null),
+  }));
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [linkFlags, setLinkFlags] = useState(() =>
+    Object.fromEntries(
+      guardianStudentLinks.map((link) => [
+        link.studentId ?? link.student,
+        link,
+      ]),
+    ),
+  );
 
   function handleChange(event) {
     const { name, value } = event.target;
+
     setFormData((current) => ({ ...current, [name]: value }));
   }
 
-  function handleStudentToggle(student) {
+  function handleStudentToggle(studentId) {
     setError("");
+
     setFormData((current) => {
-      const found = current.studentLinks.find(
-        (link) => link.studentId === student.id,
-      );
+      const alreadySelected = current.studentIds.includes(studentId);
+
       return {
         ...current,
-        studentLinks: found
-          ? current.studentLinks.filter((link) => link.studentId !== student.id)
-          : [
-              ...current.studentLinks,
-              {
-                id: `new-${student.id}`,
-                studentId: student.id,
-                studentName: student.name,
-                relationship: "",
-                emergencyContact: false,
-              },
-            ],
+
+        studentIds: alreadySelected
+          ? current.studentIds.filter((id) => id !== studentId)
+          : [...current.studentIds, studentId],
       };
     });
   }
 
-  function updateStudentLink(studentId, field, value) {
-    setFormData((current) => ({
-      ...current,
-      studentLinks: current.studentLinks.map((link) =>
-        link.studentId === studentId ? { ...link, [field]: value } : link,
-      ),
-    }));
-  }
-
-  function handleFilesChange(event) {
-    setNewFiles(Array.from(event.target.files || []));
-  }
-
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-    if (!formData.studentLinks.length) {
-      setError("Select at least one student to link to this guardian.");
-      return;
-    }
-    if (formData.studentLinks.some((link) => !link.relationship.trim())) {
-      setError("Enter the relationship for every linked student.");
-      return;
-    }
 
-    const attachments = [
-      ...(formData.attachments || []),
-      ...newFiles.map((file) => file.name),
-    ];
-    onSave({ ...formData, attachments });
+    setError("");
+
+    setSaving(true);
+
+    try {
+      await onAdd({ ...formData, linkFlags });
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setSaving(false);
+    }
   }
 
   const textFields = [
     ["company", "Company"],
+
     ["jobTitle", "Job Title"],
+
     ["email", "Email Address", "email"],
+
     ["businessPhone", "Business Phone", "tel"],
+
     ["homePhone", "Home Phone", "tel"],
+
     ["mobilePhone", "Mobile Phone", "tel"],
+
     ["faxNumber", "Fax Number", "tel"],
+
     ["address", "Address"],
+
     ["city", "City"],
+
     ["stateProvince", "State/Province"],
+
     ["postalCode", "ZIP/Postal Code"],
+
     ["countryRegion", "Country/Region"],
+
     ["webPage", "Web Page", "url"],
   ];
 
@@ -440,10 +350,12 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
         <div className="guardians-dialog__heading">
           <div>
             <p className="guardians-dialog__eyebrow">Guardian records</p>
-            <h2 id="guardian-form-title">
-              {isEditing ? "Edit guardian" : "Add guardian"}
+
+            <h2 id="add-guardian-title">
+              {guardian ? "Edit guardian" : "Add guardian"}
             </h2>
           </div>
+
           <button
             className="guardians-icon-button"
             type="button"
@@ -456,6 +368,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
 
         <form className="guardians-form" onSubmit={handleSubmit}>
           <h3>Guardian details</h3>
+
           <div className="guardians-form__row">
             <label>
               First name
@@ -469,6 +382,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
                 required
               />
             </label>
+
             <label>
               Last name
               <input
@@ -486,6 +400,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(0, 2).map(([name, label]) => (
               <label key={name}>
                 {label}
+
                 <input
                   name={name}
                   value={formData[name]}
@@ -499,6 +414,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(2, 4).map(([name, label, type = "text"]) => (
               <label key={name}>
                 {label}
+
                 <input
                   type={type}
                   name={name}
@@ -514,6 +430,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(4, 6).map(([name, label, type = "text"]) => (
               <label key={name}>
                 {label}
+
                 <input
                   type={type}
                   name={name}
@@ -528,6 +445,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(6, 8).map(([name, label, type = "text"]) => (
               <label key={name}>
                 {label}
+
                 <input
                   type={type}
                   name={name}
@@ -542,6 +460,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(8, 10).map(([name, label, type = "text"]) => (
               <label key={name}>
                 {label}
+
                 <input
                   type={type}
                   name={name}
@@ -556,6 +475,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             {textFields.slice(10).map(([name, label, type = "text"]) => (
               <label key={name}>
                 {label}
+
                 <input
                   type={type}
                   name={name}
@@ -577,77 +497,81 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             />
           </label>
 
-          <label>
-            Attachments
-            <input type="file" multiple onChange={handleFilesChange} />
-            {(formData.attachments.length > 0 || newFiles.length > 0) && (
-              <span className="guardians-attachment-list">
-                {[
-                  ...formData.attachments,
-                  ...newFiles.map((file) => file.name),
-                ].join(", ")}
-              </span>
-            )}
-          </label>
+          <p className="guardians-form__note">
+            Guardian file uploads are not connected to the backend yet.
+          </p>
 
           <fieldset className="guardians-student-fieldset">
             <legend>Student links</legend>
+
             <p>
               Choose the students linked to this guardian, then record the
               relationship and emergency-contact status for each student.
             </p>
+
             <div className="guardians-student-options">
-              {studentOptions.map((student) => {
-                const link = formData.studentLinks.find(
-                  (item) => item.studentId === student.id,
-                );
-                return (
-                  <div className="guardians-student-option" key={student.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(link)}
-                        onChange={() => handleStudentToggle(student)}
-                      />
-                      <span>{student.name}</span>
-                    </label>
-                    {link && (
-                      <div className="guardians-student-link-fields">
-                        <label>
-                          Relationship to {student.name.split(" ")[0]}
-                          <input
-                            value={link.relationship}
-                            onChange={(event) =>
-                              updateStudentLink(
-                                student.id,
-                                "relationship",
-                                event.target.value,
-                              )
-                            }
-                            placeholder="For example, mother"
-                            required
-                          />
-                        </label>
-                        <label className="guardians-emergency-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={link.emergencyContact}
-                            onChange={(event) =>
-                              updateStudentLink(
-                                student.id,
-                                "emergencyContact",
-                                event.target.checked,
-                              )
-                            }
-                          />
-                          Emergency contact
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {students.map((student) => (
+                <label key={student.id}>
+                  <input
+                    type="checkbox"
+                    checked={formData.studentIds.includes(student.id)}
+                    onChange={() => handleStudentToggle(student.id)}
+                  />
+
+                  <span>
+                    {student.first_name} {student.last_name} (ASP-{student.id})
+                  </span>
+                </label>
+              ))}
             </div>
+
+            {students
+              .filter((student) => formData.studentIds.includes(student.id))
+              .map((student) => (
+                <div className="crm-inline-actions" key={`flags-${student.id}`}>
+                  <span>
+                    {student.first_name} {student.last_name}
+                  </span>
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={
+                        linkFlags[student.id]?.is_primary_contact || false
+                      }
+                      onChange={(event) =>
+                        setLinkFlags((current) => ({
+                          ...current,
+                          [student.id]: {
+                            ...current[student.id],
+                            is_primary_contact: event.target.checked,
+                          },
+                        }))
+                      }
+                    />
+                    Primary contact
+                  </label>
+
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={
+                        linkFlags[student.id]?.is_emergency_contact ?? true
+                      }
+                      onChange={(event) =>
+                        setLinkFlags((current) => ({
+                          ...current,
+                          [student.id]: {
+                            ...current[student.id],
+                            is_emergency_contact: event.target.checked,
+                          },
+                        }))
+                      }
+                    />
+                    Emergency contact
+                  </label>
+                </div>
+              ))}
           </fieldset>
 
           {error && (
@@ -655,11 +579,7 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
               {error}
             </p>
           )}
-          <p className="guardians-form__note">
-            This prototype keeps changes in page state only. File names are
-            recorded, but files are not uploaded until backend storage is
-            connected.
-          </p>
+
           <div className="guardians-form__actions">
             <button
               className="guardians-secondary-button"
@@ -668,8 +588,17 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
             >
               Cancel
             </button>
-            <button className="guardians-primary-button" type="submit">
-              {isEditing ? "Save changes" : "Add guardian"}
+
+            <button
+              className="guardians-primary-button"
+              type="submit"
+              disabled={saving}
+            >
+              {saving
+                ? "Saving..."
+                : guardian
+                  ? "Save changes"
+                  : "Add guardian"}
             </button>
           </div>
         </form>
@@ -679,65 +608,154 @@ function GuardianFormDialog({ guardian, onClose, onSave }) {
 }
 
 export default function Guardians() {
-  const [guardians, setGuardians] = useState(initialGuardians);
+  const records = useRecords("/guardians/");
+
+  const studentRecords = useRecords("/students/");
+
+  const guardians = useMemo(
+    () =>
+      (Array.isArray(records.data) ? records.data : []).map((record) => {
+        const guardian = guardianRecord(record);
+        return {
+          ...guardian,
+          studentLinks: Array.isArray(guardian.studentLinks)
+            ? guardian.studentLinks
+            : [],
+          attachments: Array.isArray(guardian.attachments)
+            ? guardian.attachments
+            : [],
+        };
+      }),
+    [records.data],
+  );
+
+  const { user } = useAuth();
+
+  const canManage = user?.can_manage;
+
+  const [showAddDialog, setShowAddDialog] = useState(false);
+
+  const [editingGuardian, setEditingGuardian] = useState(null);
+
+  const [actionError, setActionError] = useState("");
+
   const [search, setSearch] = useState("");
-  const [formGuardian, setFormGuardian] = useState(undefined);
+
   const [selectedGuardian, setSelectedGuardian] = useState(null);
+  const students = Array.isArray(studentRecords.data)
+    ? studentRecords.data
+    : [];
 
   const filteredGuardians = useMemo(() => {
     const query = search.trim().toLowerCase();
+
     if (!query) return guardians;
 
     return guardians.filter((guardian) => {
       const searchableValues = [
         guardian.firstName,
+
         guardian.lastName,
+
         guardian.company,
+
         guardian.jobTitle,
+
         guardian.email,
+
         guardian.businessPhone,
+
         guardian.homePhone,
+
         guardian.mobilePhone,
+
         guardian.faxNumber,
+
         guardian.address,
+
         guardian.city,
+
         guardian.stateProvince,
+
         guardian.postalCode,
+
         guardian.countryRegion,
+
         guardian.webPage,
+
         guardian.notes,
-        ...guardian.studentLinks.flatMap((link) => [
+
+        ...(Array.isArray(guardian.studentLinks)
+          ? guardian.studentLinks
+          : []
+        ).flatMap((link) => [
           link.studentName,
+
           link.relationship,
+
           link.emergencyContact ? "emergency contact" : "",
         ]),
       ];
+
       return searchableValues.some((value) =>
         value?.toLowerCase().includes(query),
       );
     });
   }, [guardians, search]);
 
-  function handleSaveGuardian(guardianData) {
-    if (guardianData.id) {
-      setGuardians((current) =>
-        current.map((item) =>
-          item.id === guardianData.id ? guardianData : item,
-        ),
-      );
-    } else {
-      setGuardians((current) => [
-        { ...guardianData, id: Date.now() },
-        ...current,
-      ]);
-    }
-    setFormGuardian(undefined);
+  function handleEditGuardian(guardian) {
+    setActionError("");
     setSelectedGuardian(null);
+    setEditingGuardian(guardian);
+    setShowAddDialog(true);
   }
 
-  function handleEditGuardian(guardian) {
-    setSelectedGuardian(null);
-    setFormGuardian(guardian);
+  async function handleAddGuardian(guardian) {
+    const data = {
+      first_name: guardian.firstName,
+      last_name: guardian.lastName,
+      phone: guardian.phone || guardian.mobilePhone,
+      email: guardian.email,
+
+      links: guardian.studentIds.map((student) => {
+        const existing = guardian.linkFlags?.[student];
+
+        return {
+          student,
+          relationship: guardian.relationship,
+          is_primary_contact: existing?.is_primary_contact || false,
+
+          is_emergency_contact: existing?.is_emergency_contact ?? true,
+        };
+      }),
+    };
+
+    if (editingGuardian)
+      await api.patch(`/guardians/${editingGuardian.id}/`, data);
+    else await api.post("/guardians/", data);
+
+    records.refresh();
+
+    setShowAddDialog(false);
+
+    setEditingGuardian(null);
+  }
+
+  async function deleteGuardian() {
+    if (
+      !window.confirm(
+        `Delete ${selectedGuardian.firstName} ${selectedGuardian.lastName} and unlink their students?`,
+      )
+    )
+      return;
+
+    try {
+      await api.delete(`/guardians/${selectedGuardian.id}/`);
+      setSelectedGuardian(null);
+      records.refresh();
+    } catch (requestError) {
+      setActionError(errorMessage(requestError));
+    }
   }
 
   return (
@@ -745,18 +763,41 @@ export default function Guardians() {
       <header className="guardians-page__heading">
         <div>
           <h1>Guardians</h1>
+
           <p className="guardians-page__description">
             View and manage guardian details and student links.
           </p>
         </div>
-        <button
-          className="guardians-primary-button"
-          type="button"
-          onClick={() => setFormGuardian(null)}
-        >
-          <span aria-hidden="true">+</span> Add guardian
-        </button>
+
+        {canManage && (
+          <button
+            className="guardians-primary-button"
+            type="button"
+            onClick={() => {
+              setEditingGuardian(null);
+              setShowAddDialog(true);
+            }}
+          >
+            <span aria-hidden="true">+</span>
+            Add guardian
+          </button>
+        )}
       </header>
+
+      <RequestState
+        loading={records.loading || studentRecords.loading}
+        error={records.error || studentRecords.error}
+        onRetry={() => {
+          records.refresh();
+          studentRecords.refresh();
+        }}
+      />
+
+      {actionError && (
+        <p className="crm-message crm-message--error" role="alert">
+          {actionError}
+        </p>
+      )}
 
       <section className="guardians-panel" aria-label="Guardian records">
         <div className="guardians-toolbar">
@@ -764,7 +805,9 @@ export default function Guardians() {
             <span className="guardians-search__icon">
               <SearchIcon />
             </span>
+
             <span className="visually-hidden">Search guardians</span>
+
             <input
               type="search"
               value={search}
@@ -792,14 +835,19 @@ export default function Guardians() {
               <thead>
                 <tr>
                   <th scope="col">Guardian</th>
+
                   <th scope="col">Linked student(s)</th>
+
                   <th scope="col">Mobile phone</th>
+
                   <th scope="col">Email</th>
+
                   <th scope="col" className="guardian-row-action">
                     Action
                   </th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredGuardians.map((guardian) => (
                   <tr key={guardian.id}>
@@ -808,16 +856,20 @@ export default function Guardians() {
                         {guardian.firstName} {guardian.lastName}
                       </span>
                     </td>
+
                     <td className="guardian-students">
                       {guardian.studentLinks.length
                         ? guardian.studentLinks
+
                             .map(
                               (link) =>
                                 `${link.studentName} (${link.relationship || "Relationship not recorded"}${link.emergencyContact ? ", emergency contact" : ""})`,
                             )
+
                             .join("; ")
                         : "No students linked"}
                     </td>
+
                     <td>
                       {guardian.mobilePhone ? (
                         <a href={phoneLink(guardian.mobilePhone)}>
@@ -827,6 +879,7 @@ export default function Guardians() {
                         "Not recorded"
                       )}
                     </td>
+
                     <td>
                       {guardian.email ? (
                         <a href={`mailto:${guardian.email}`}>
@@ -836,6 +889,7 @@ export default function Guardians() {
                         "Not recorded"
                       )}
                     </td>
+
                     <td className="guardian-row-action">
                       <button
                         className="guardians-view-button"
@@ -845,6 +899,7 @@ export default function Guardians() {
                       >
                         View
                       </button>
+
                       <button
                         className="guardians-view-button"
                         type="button"
@@ -862,16 +917,18 @@ export default function Guardians() {
         ) : (
           <div className="guardians-empty-state">
             <h2>No guardians found</h2>
+
             <p>Try another name, student, phone number or email address.</p>
           </div>
         )}
       </section>
 
-      {formGuardian !== undefined && (
-        <GuardianFormDialog
-          guardian={formGuardian}
-          onClose={() => setFormGuardian(undefined)}
-          onSave={handleSaveGuardian}
+      {showAddDialog && (
+        <AddGuardianDialog
+          onClose={() => setShowAddDialog(false)}
+          onAdd={handleAddGuardian}
+          students={students}
+          guardian={editingGuardian}
         />
       )}
 
@@ -879,7 +936,16 @@ export default function Guardians() {
         <GuardianDetailsDialog
           guardian={selectedGuardian}
           onClose={() => setSelectedGuardian(null)}
-          onEdit={handleEditGuardian}
+          onEdit={
+            canManage
+              ? () => {
+                  setEditingGuardian(selectedGuardian);
+                  setSelectedGuardian(null);
+                  setShowAddDialog(true);
+                }
+              : null
+          }
+          onDelete={canManage ? deleteGuardian : null}
         />
       )}
     </main>

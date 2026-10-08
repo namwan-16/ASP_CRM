@@ -1,49 +1,70 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
+import { useAuth } from "../context/AuthContext";
 
-const dashboardActions = [
-  {
-    title: "Emergency lookup",
-    description: "Find a student’s emergency guardian contact details.",
-    to: "/emergency-lookup",
-    tone: "urgent",
-    icon: "search",
-  },
+const adminActions = [
   {
     title: "Students",
-    description: "Find and view student records.",
+    description: "Find and manage student records.",
     to: "/students",
-    tone: "blue",
     icon: "student",
   },
   {
-    title: "Record attendance",
-    description: "Mark attendance for a class session.",
-    to: "/attendance",
-    tone: "green",
-    icon: "attendance",
+    title: "Guardians",
+    description: "Manage guardian details and student links.",
+    to: "/guardians",
+    icon: "guardians",
   },
   {
-    title: "Progress notes",
-    description: "Add or review a student interaction note.",
-    to: "/progress-notes",
-    tone: "purple",
-    icon: "notes",
+    title: "Classes",
+    description: "Schedule classes and manage enrolments.",
+    to: "/classes",
+    icon: "classes",
   },
   {
-    title: "Registrations & CSV",
-    description: "Manage registrations and upload incoming CSV files.",
+    title: "Registrations",
+    description: "Upload and review registration files.",
     to: "/registrations",
-    tone: "blue",
     icon: "registration",
   },
   {
     title: "Reports",
-    description: "View attendance, late-arrival, enrolment and activity reports.",
+    description: "View attendance and class activity reports.",
     to: "/reports",
-    tone: "green",
     icon: "reports",
+  },
+  {
+    title: "Emergency lookup",
+    description: "Find a student's emergency contact details.",
+    to: "/emergency-lookup",
+    icon: "emergency",
+  },
+];
+
+const presenterActions = [
+  {
+    title: "Classes",
+    description: "View your assigned classes and student lists.",
+    to: "/classes",
+    icon: "classes",
+  },
+  {
+    title: "Record attendance",
+    description: "Mark attendance for an assigned class.",
+    to: "/attendance",
+    icon: "attendance",
+  },
+  {
+    title: "Progress notes",
+    description: "View or write notes for your students.",
+    to: "/progress-notes",
+    icon: "notes",
+  },
+  {
+    title: "Emergency lookup",
+    description: "Find a student's emergency contact details.",
+    to: "/emergency-lookup",
+    icon: "emergency",
   },
 ];
 
@@ -60,20 +81,30 @@ function ActionIcon({ name }) {
     "aria-hidden": true,
   };
 
-  if (name === "search") {
-    return (
-      <svg {...common}>
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 4.5 4.5" />
-      </svg>
-    );
-  }
-
   if (name === "student") {
     return (
       <svg {...common}>
         <path d="m3 8 9-5 9 5-9 5-9-5Z" />
         <path d="M7 10.2v5.1c2.9 2.2 7.1 2.2 10 0v-5.1M21 8v6" />
+      </svg>
+    );
+  }
+
+  if (name === "guardians") {
+    return (
+      <svg {...common}>
+        <circle cx="9" cy="8" r="3.5" />
+        <path d="M2.5 20v-1.5A5.5 5.5 0 0 1 8 13h2" />
+        <path d="M16 14v6M13 17h6" />
+      </svg>
+    );
+  }
+
+  if (name === "classes") {
+    return (
+      <svg {...common}>
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Z" />
+        <path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 7h8M8 11h6" />
       </svg>
     );
   }
@@ -107,6 +138,15 @@ function ActionIcon({ name }) {
     );
   }
 
+  if (name === "emergency") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 8c.5 4 4 7.5 8 8l1.5-2-3-2-1.5 1c-1.2-.6-2.2-1.6-2.8-2.8l1-1.5-2-3L8 8Z" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...common}>
       <path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" />
@@ -126,30 +166,23 @@ function getFirstName(user) {
   return String(value).trim().split(/\s+/)[0] || "there";
 }
 
-function getRoleLabel(user) {
-  const role = String(user?.role || user?.user_type || "").toLowerCase();
-
-  if (role.includes("admin")) return "Administrator";
-  if (role.includes("present")) return "Presenter";
-
-  return "ASP team member";
-}
-
-export default function Dashboard({ user }) {
-  const roleLabel = getRoleLabel(user);
+export default function Dashboard() {
+  const { user } = useAuth();
+  const isAdministrator = Boolean(user?.can_manage);
+  const actions = isAdministrator ? adminActions : presenterActions;
+  const roleLabel = isAdministrator ? "Administrator" : "Presenter";
 
   return (
     <main className="dashboard-page">
-      <div className="dashboard-page__heading">
+      <header className="dashboard-page__heading">
         <div>
-          <p className="dashboard-page__eyebrow">
-            ASP CLASS PROCESS PIPELINE
-          </p>
           <h1>Welcome back, {getFirstName(user)}</h1>
+          <p className="dashboard-page__intro">
+            Your workspace for today’s after-school program tasks.
+          </p>
         </div>
 
-        <span className="dashboard-page__role">{roleLabel}</span>
-      </div>
+      </header>
 
       <section
         className="dashboard-welcome"
@@ -157,8 +190,16 @@ export default function Dashboard({ user }) {
       >
         <div className="dashboard-welcome__copy">
           <p className="dashboard-welcome__eyebrow">Your ASP workspace</p>
-          <h2 id="dashboard-welcome-title">What would you like to do?</h2>
-          <p>Choose a task to get started.</p>
+          <h2 id="dashboard-welcome-title">
+            {isAdministrator
+              ? "Keep the program running smoothly."
+              : "Get ready for your classes."}
+          </h2>
+          <p>
+            {isAdministrator
+              ? "Choose a task below to manage students, classes and program records."
+              : "Open a class, record attendance or add a progress note."}
+          </p>
         </div>
 
         <div className="dashboard-welcome__mark" aria-hidden="true">
@@ -173,18 +214,16 @@ export default function Dashboard({ user }) {
         <div className="dashboard-actions__heading">
           <div>
             <h2 id="dashboard-actions-title">Quick actions</h2>
-            <p>Common tasks and useful reports</p>
+            <p>Shortcuts for your most common tasks</p>
           </div>
         </div>
 
         <div className="dashboard-actions__grid">
-          {dashboardActions.map((item) => (
-            <Link
-              className={`dashboard-action dashboard-action--${item.tone}`}
-              to={item.to}
-              key={item.title}
-            >
-              <span className="dashboard-action__icon">
+          {actions.map((item) => (
+            <Link className="dashboard-action" to={item.to} key={item.title}>
+              <span
+                className={`dashboard-action__icon dashboard-action__icon--${item.icon}`}
+              >
                 <ActionIcon name={item.icon} />
               </span>
 

@@ -20,45 +20,100 @@ import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import MenuOutlined from "@mui/icons-material/MenuOutlined";
 import ChevronLeftOutlined from "@mui/icons-material/ChevronLeftOutlined";
+import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import PersonOutlineOutlined from "@mui/icons-material/PersonOutlineOutlined";
+import MenuOpenOutlined from "@mui/icons-material/MenuOpenOutlined";
 
 import "./Layout.css";
 
 export const sidebarPages = [
-  { path: "/dashboard", label: "Dashboard", icon: DashboardOutlined },
-  { path: "/students", label: "Students", icon: SchoolOutlined },
-  { path: "/guardians", label: "Guardians", icon: FamilyRestroomOutlined },
-  { path: "/classes", label: "Classes", icon: ClassOutlined },
-  { path: "/attendance", label: "Attendance", icon: FactCheckOutlined },
+  {
+    path: "/dashboard",
+    label: "Dashboard",
+    icon: DashboardOutlined,
+    adminOnly: true,
+  },
+  {
+    path: "/students",
+    label: "Student Records",
+    icon: SchoolOutlined,
+    adminOnly: true,
+  },
+  {
+    path: "/guardians",
+    label: "Guardians",
+    icon: FamilyRestroomOutlined,
+    adminOnly: true,
+  },
+  {
+    path: "/classes",
+    label: "Classes",
+    icon: ClassOutlined,
+    presenterAllowed: true,
+  },
+  {
+    path: "/attendance",
+    label: "Attendance",
+    icon: FactCheckOutlined,
+    presenterAllowed: true,
+  },
   {
     path: "/progress-notes",
     label: "Progress Notes",
     icon: DescriptionOutlined,
+    presenterAllowed: true,
   },
   {
     path: "/registrations",
     label: "Registrations",
     icon: PersonAddOutlined,
+    adminOnly: true,
   },
-  { path: "/reports", label: "Reports", icon: AssessmentOutlined },
+  {
+    path: "/reports",
+    label: "Reports",
+    icon: AssessmentOutlined,
+    adminOnly: true,
+  },
+  {
+    path: "/staff",
+    label: "Staff & Permissions",
+    icon: FamilyRestroomOutlined,
+    adminOnly: true,
+  },
 ];
+
+function isAdministrator(user) {
+  const role = String(user?.role ?? "")
+    .trim()
+    .toLowerCase();
+
+  return Boolean(
+    user?.can_manage ||
+    user?.is_superuser ||
+    ["admin", "administrator", "administration"].includes(role),
+  );
+}
 
 export default function Layout() {
   const { logout, user } = useAuth();
   const { pathname } = useLocation();
 
+  const administrator = isAdministrator(user);
+  const visiblePages = sidebarPages.filter(
+    (page) => administrator || page.presenterAllowed,
+  );
+
+  const classesSectionActive =
+    pathname === "/classes" || pathname.startsWith("/classes/");
+
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [classesExpanded, setClassesExpanded] = useState(false);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
   const profileOpen = Boolean(profileAnchor);
-
-  const currentPage = sidebarPages.find(
-    (page) => pathname === page.path || pathname.startsWith(`${page.path}/`),
-  );
-
-  const pageTitle =
-    currentPage?.label ||
-    (pathname === "/emergency-lookup" ? "Emergency Lookup" : "ASP CRM");
 
   const fullName = [user?.first_name, user?.last_name]
     .filter(Boolean)
@@ -66,6 +121,7 @@ export default function Layout() {
     .trim();
 
   const displayName = fullName || user?.username || "User";
+  const roleLabel = administrator ? "Administrator" : "Presenter";
 
   const initials = fullName
     ? [user?.first_name, user?.last_name]
@@ -156,25 +212,105 @@ export default function Layout() {
             aria-expanded={!collapsed}
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <ChevronLeftOutlined aria-hidden="true" />
+            <MenuOpenOutlined aria-hidden="true" />{" "}
           </button>
         </div>
 
         <nav className="crm-nav" aria-label="Main navigation">
-          {sidebarPages.map(({ path, label, icon: Icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                `crm-nav-link${isActive ? " crm-nav-link-active" : ""}`
-              }
-              onClick={closeMobileSidebar}
-            >
-              <Icon className="crm-menu-icon" aria-hidden="true" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
+          {visiblePages.map(({ path, label, icon: Icon }) => {
+            if (path === "/classes") {
+              return (
+                <div className="crm-nav-group" key={path}>
+                  <div
+                    className={`crm-nav-group__row${
+                      classesSectionActive ? " crm-nav-group__row--active" : ""
+                    }`}
+                  >
+                    <NavLink
+                      to={path}
+                      end
+                      title={collapsed ? label : undefined}
+                      className={({ isActive }) =>
+                        `crm-nav-link${isActive ? " crm-nav-link-active" : ""}`
+                      }
+                      style={{ flex: 1, minWidth: 0 }}
+                      onClick={closeMobileSidebar}
+                    >
+                      <Icon className="crm-menu-icon" aria-hidden="true" />
+                      <span>{label}</span>
+                    </NavLink>
+
+                    {administrator && (
+                      <button
+                        className="crm-nav-group__toggle"
+                        type="button"
+                        aria-label={
+                          classesExpanded
+                            ? "Collapse Classes menu"
+                            : "Expand Classes menu"
+                        }
+                        aria-expanded={classesExpanded}
+                        title={
+                          classesExpanded
+                            ? "Collapse Classes menu"
+                            : "Expand Classes menu"
+                        }
+                        onClick={() =>
+                          setClassesExpanded((current) => !current)
+                        }
+                      >
+                        <ExpandMoreOutlined
+                          aria-hidden="true"
+                          className={
+                            classesExpanded
+                              ? "crm-nav-group__chevron crm-nav-group__chevron--expanded"
+                              : "crm-nav-group__chevron"
+                          }
+                        />
+                      </button>
+                    )}
+                  </div>
+
+                  {administrator && classesExpanded && (
+                    <NavLink
+                      to="/subjects"
+                      title={collapsed ? "Manage subjects" : undefined}
+                      className={({ isActive }) =>
+                        `crm-nav-link crm-nav-sub-link${
+                          isActive ? " crm-nav-link-active" : ""
+                        }`
+                      }
+                      style={{
+                        paddingLeft: collapsed ? undefined : "2.75rem",
+                      }}
+                      onClick={closeMobileSidebar}
+                    >
+                      <MenuBookOutlined
+                        className="crm-menu-icon"
+                        aria-hidden="true"
+                      />
+                      <span>Manage subjects</span>
+                    </NavLink>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <NavLink
+                key={path}
+                to={path}
+                title={collapsed ? label : undefined}
+                className={({ isActive }) =>
+                  `crm-nav-link${isActive ? " crm-nav-link-active" : ""}`
+                }
+                onClick={closeMobileSidebar}
+              >
+                <Icon className="crm-menu-icon" aria-hidden="true" />
+                <span>{label}</span>
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="crm-sidebar-footer">
@@ -182,7 +318,9 @@ export default function Layout() {
             to="/emergency-lookup"
             title={collapsed ? "Emergency Lookup" : undefined}
             className={({ isActive }) =>
-              `crm-emergency-link${isActive ? " crm-emergency-link-active" : ""}`
+              `crm-emergency-link${
+                isActive ? " crm-emergency-link-active" : ""
+              }`
             }
             onClick={closeMobileSidebar}
           >
@@ -215,7 +353,6 @@ export default function Layout() {
           </button>
 
           <div className="crm-header-heading">
-            {/* {pathname !== "/students" && <h1>{pageTitle}</h1>} */}
             <p>{today}</p>
           </div>
 
@@ -265,12 +402,20 @@ export default function Layout() {
                     <div className="crm-profile-email">{user.email}</div>
                   )}
 
-                  {user?.role && (
-                    <div className="crm-profile-role">Role: {user.role}</div>
-                  )}
+                  <div className="crm-profile-role">{roleLabel}</div>
                 </Box>
 
                 <Divider />
+
+                <MenuItem
+                  component={NavLink}
+                  to="/profile"
+                  onClick={closeProfileMenu}
+                  className="crm-profile-menu-item"
+                >
+                  <PersonOutlineOutlined fontSize="small" aria-hidden="true" />
+                  My profile
+                </MenuItem>
 
                 <MenuItem onClick={handleLogout} className="crm-profile-logout">
                   <LogoutOutlined fontSize="small" aria-hidden="true" />

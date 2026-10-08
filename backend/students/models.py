@@ -9,6 +9,9 @@ class Student(models.Model):
     year_level = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    subject = models.CharField(max_length=100, blank=True)
+    permission_to_travel_alone = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     medical_information = models.TextField(blank=True)
     special_circumstances = models.TextField(blank=True)
@@ -58,7 +61,11 @@ class StudentGuardian(models.Model):
             models.UniqueConstraint(
                 fields=["student", "guardian"],
                 name="unique_student_guardian",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["student"], condition=models.Q(is_primary_contact=True),
+                name="unique_primary_guardian",
+            ),
         ]
 
     def __str__(self):

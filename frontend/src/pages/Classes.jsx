@@ -1,17 +1,10 @@
 import React, { useMemo, useState } from "react";
 import "./Classes.css";
-
-// Prototype records only. Replace these with API data when backend endpoints are ready.
-const demoStudents = [
-  { id: "ASP-1001", name: "Ava Thompson", year: "Year 7" },
-  { id: "ASP-1002", name: "Noah Williams", year: "Year 8" },
-  { id: "ASP-1003", name: "Mia Chen", year: "Year 9" },
-  { id: "ASP-1004", name: "Oliver Brown", year: "Year 10" },
-  { id: "ASP-1005", name: "Isla Wilson", year: "Year 7" },
-];
-
-const demoPresenters = ["Jane Doe", "Michael Lee", "Sarah Brown"];
-const demoAssistants = ["Alex Kim", "Priya Singh"];
+import api from "../api/client";
+import { errorMessage, sessionRecord } from "../api/crm";
+import useRecords from "../hooks/useRecords";
+import { useAuth } from "../context/AuthContext";
+import RequestState from "../components/RequestState";
 
 function localDateString(date) {
   const year = date.getFullYear();
@@ -29,61 +22,11 @@ function dateAfter(days) {
 
 function getStatus(date) {
   const today = localDateString(new Date());
+
   if (date < today) return "Completed";
   if (date === today) return "Today";
   return "Upcoming";
 }
-
-const initialClasses = [
-  {
-    id: "CLS-001",
-    course: "Mathematics",
-    date: dateAfter(1),
-    startTime: "16:00",
-    endTime: "17:00",
-    room: "Room 1",
-    capacity: 20,
-    presenter: "Jane Doe",
-    assistant: "Alex Kim",
-    studentIds: ["ASP-1001", "ASP-1003"],
-  },
-  {
-    id: "CLS-002",
-    course: "Physics",
-    date: dateAfter(1),
-    startTime: "17:00",
-    endTime: "18:00",
-    room: "Room 2",
-    capacity: 18,
-    presenter: "Michael Lee",
-    assistant: "Priya Singh",
-    studentIds: ["ASP-1002", "ASP-1005"],
-  },
-  {
-    id: "CLS-003",
-    course: "Chemistry",
-    date: dateAfter(2),
-    startTime: "16:00",
-    endTime: "17:30",
-    room: "Science Lab",
-    capacity: 16,
-    presenter: "Sarah Brown",
-    assistant: "",
-    studentIds: ["ASP-1004"],
-  },
-  {
-    id: "CLS-004",
-    course: "Mathematics",
-    date: dateAfter(4),
-    startTime: "16:00",
-    endTime: "17:00",
-    room: "Room 1",
-    capacity: 20,
-    presenter: "Michael Lee",
-    assistant: "",
-    studentIds: ["ASP-1002", "ASP-1004"],
-  },
-];
 
 function formatDate(value) {
   if (!value) return "—";
@@ -107,19 +50,19 @@ function formatTime(value) {
   return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")}${suffix}`;
 }
 
-function ClassForm({ classItem, onClose, onSave }) {
+function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
   const [form, setForm] = useState(
     classItem
       ? {
-          course: classItem.course,
-          date: classItem.date,
-          startTime: classItem.startTime,
-          endTime: classItem.endTime,
-          room: classItem.room,
-          capacity: String(classItem.capacity),
-          presenter: classItem.presenter,
-          assistant: classItem.assistant,
-          studentIds: classItem.studentIds,
+          course: String(classItem.courseId ?? ""),
+          date: classItem.date ?? "",
+          startTime: classItem.startTime ?? "16:00",
+          endTime: classItem.endTime ?? "17:00",
+          room: classItem.room ?? "",
+          capacity: String(classItem.capacity ?? 20),
+          presenter: String(classItem.presenterId ?? ""),
+          assistant: String(classItem.assistantId ?? ""),
+          studentIds: classItem.studentIds ?? [],
         }
       : {
           course: "",
@@ -135,6 +78,11 @@ function ClassForm({ classItem, onClose, onSave }) {
   );
 
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const selectedCourse = courses.find(
+    (course) => String(course.id) === String(form.course),
+  );
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -150,7 +98,7 @@ function ClassForm({ classItem, onClose, onSave }) {
     }));
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     if (
@@ -180,8 +128,29 @@ function ClassForm({ classItem, onClose, onSave }) {
       return;
     }
 
-    onSave({ ...form, capacity });
+    setError("");
+    setSaving(true);
+
+    try {
+      await onSave({ ...form, capacity });
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setSaving(false);
+    }
   }
+
+  const activeStaff = staff.filter(
+    (person) =>
+      person.is_active &&
+      ["presenter", "admin"].includes(person.role?.toLowerCase()),
+  );
+
+  const assistantStaff = staff.filter(
+    (person) =>
+      person.is_active &&
+      ["assistant", "admin"].includes(person.role?.toLowerCase()),
+  );
 
   return (
     <div
@@ -220,12 +189,28 @@ function ClassForm({ classItem, onClose, onSave }) {
         <form className="classes-form" onSubmit={handleSubmit}>
           <label>
             Course or subject
-            <input
+            <select
               name="course"
               value={form.course}
               onChange={updateField}
-              placeholder="e.g. Mathematics"
-            />
+              required
+            >
+              <option value="">Select a course</option>
+
+              {courses
+                .filter((course) => course.is_active)
+                .map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+
+              {selectedCourse && !selectedCourse.is_active && (
+                <option value={selectedCourse.id}>
+                  {selectedCourse.name} (inactive)
+                </option>
+              )}
+            </select>
           </label>
 
           <div className="classes-form__row">
@@ -236,6 +221,7 @@ function ClassForm({ classItem, onClose, onSave }) {
                 name="date"
                 value={form.date}
                 onChange={updateField}
+                required
               />
             </label>
 
@@ -246,6 +232,7 @@ function ClassForm({ classItem, onClose, onSave }) {
                 value={form.room}
                 onChange={updateField}
                 placeholder="e.g. Room 1"
+                required
               />
             </label>
           </div>
@@ -258,6 +245,7 @@ function ClassForm({ classItem, onClose, onSave }) {
                 name="startTime"
                 value={form.startTime}
                 onChange={updateField}
+                required
               />
             </label>
 
@@ -268,6 +256,7 @@ function ClassForm({ classItem, onClose, onSave }) {
                 name="endTime"
                 value={form.endTime}
                 onChange={updateField}
+                required
               />
             </label>
           </div>
@@ -277,12 +266,17 @@ function ClassForm({ classItem, onClose, onSave }) {
               Presenter
               <select
                 name="presenter"
+                aria-label="Presenter"
                 value={form.presenter}
                 onChange={updateField}
+                required
               >
                 <option value="">Select a presenter</option>
-                {demoPresenters.map((name) => (
-                  <option key={name}>{name}</option>
+                {activeStaff.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {`${person.first_name} ${person.last_name}`.trim() ||
+                      person.username}
+                  </option>
                 ))}
               </select>
             </label>
@@ -294,12 +288,16 @@ function ClassForm({ classItem, onClose, onSave }) {
               </span>
               <select
                 name="assistant"
+                aria-label="Assistant"
                 value={form.assistant}
                 onChange={updateField}
               >
                 <option value="">No assistant</option>
-                {demoAssistants.map((name) => (
-                  <option key={name}>{name}</option>
+                {assistantStaff.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {`${person.first_name} ${person.last_name}`.trim() ||
+                      person.username}
+                  </option>
                 ))}
               </select>
             </label>
@@ -313,32 +311,34 @@ function ClassForm({ classItem, onClose, onSave }) {
               name="capacity"
               value={form.capacity}
               onChange={updateField}
+              required
             />
           </label>
 
           <fieldset className="classes-student-picker">
             <legend>Assign registered students</legend>
-            <p>
-              Select demo students for this class. Backend enrolments will
-              replace these records later.
-            </p>
+            <p>Select the students who will attend this class.</p>
 
             <div className="classes-student-picker__list">
-              {demoStudents.map((student) => (
-                <label className="classes-student-option" key={student.id}>
-                  <input
-                    type="checkbox"
-                    checked={form.studentIds.includes(student.id)}
-                    onChange={() => toggleStudent(student.id)}
-                  />
-                  <span>
-                    {student.name}
-                    <small>
-                      {student.id} · {student.year}
-                    </small>
-                  </span>
-                </label>
-              ))}
+              {students.length ? (
+                students.map((student) => (
+                  <label className="classes-student-option" key={student.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.studentIds.includes(student.id)}
+                      onChange={() => toggleStudent(student.id)}
+                    />
+                    <span>
+                      {student.name}
+                      <small>
+                        {student.id} · {student.year}
+                      </small>
+                    </span>
+                  </label>
+                ))
+              ) : (
+                <p>No students are available to assign.</p>
+              )}
             </div>
 
             <span className="classes-student-picker__count">
@@ -352,11 +352,6 @@ function ClassForm({ classItem, onClose, onSave }) {
             </p>
           )}
 
-          <p className="classes-form__note">
-            Demo data only. Course, staff and student records will connect to
-            the backend later.
-          </p>
-
           <div className="classes-form__actions">
             <button
               className="classes-secondary-button"
@@ -365,8 +360,16 @@ function ClassForm({ classItem, onClose, onSave }) {
             >
               Cancel
             </button>
-            <button className="classes-primary-button" type="submit">
-              {classItem ? "Save changes" : "Create class"}
+            <button
+              className="classes-primary-button"
+              type="submit"
+              disabled={saving}
+            >
+              {saving
+                ? "Saving..."
+                : classItem
+                  ? "Save changes"
+                  : "Create class"}
             </button>
           </div>
         </form>
@@ -375,8 +378,8 @@ function ClassForm({ classItem, onClose, onSave }) {
   );
 }
 
-function ClassDetails({ classItem, onClose, onEdit }) {
-  const enrolledStudents = demoStudents.filter((student) =>
+function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
+  const enrolledStudents = students.filter((student) =>
     classItem.studentIds.includes(student.id),
   );
 
@@ -470,13 +473,26 @@ function ClassDetails({ classItem, onClose, onEdit }) {
           >
             Close
           </button>
-          <button
-            className="classes-primary-button"
-            type="button"
-            onClick={onEdit}
-          >
-            Edit class
-          </button>
+
+          {onEdit && (
+            <button
+              className="classes-primary-button"
+              type="button"
+              onClick={onEdit}
+            >
+              Edit class
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              className="classes-secondary-button"
+              type="button"
+              onClick={onDelete}
+            >
+              Delete class
+            </button>
+          )}
         </div>
       </section>
     </div>
@@ -484,7 +500,42 @@ function ClassDetails({ classItem, onClose, onEdit }) {
 }
 
 export default function Classes() {
-  const [classes, setClasses] = useState(initialClasses);
+  const records = useRecords("/sessions/");
+  const courseRecords = useRecords("/courses/");
+  const staffRecords = useRecords("/auth/users/");
+  const studentRecords = useRecords("/students/");
+
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+
+  const classes = useMemo(
+    () => (Array.isArray(records.data) ? records.data.map(sessionRecord) : []),
+    [records.data],
+  );
+
+  const coursesFromApi = useMemo(
+    () => (Array.isArray(courseRecords.data) ? courseRecords.data : []),
+    [courseRecords.data],
+  );
+
+  const staff = useMemo(
+    () => (Array.isArray(staffRecords.data) ? staffRecords.data : []),
+    [staffRecords.data],
+  );
+
+  const students = useMemo(
+    () =>
+      (Array.isArray(studentRecords.data) ? studentRecords.data : []).map(
+        (student) => ({
+          id: student.id,
+          name: `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim(),
+          year: student.year_level ?? "",
+        }),
+      ),
+    [studentRecords.data],
+  );
+
+  const [actionError, setActionError] = useState("");
   const [query, setQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All courses");
   const [presenterFilter, setPresenterFilter] = useState("All presenters");
@@ -494,13 +545,32 @@ export default function Classes() {
   const [selectedClass, setSelectedClass] = useState(null);
   const [editingClass, setEditingClass] = useState(null);
 
-  const courses = useMemo(
-    () => [...new Set(classes.map((item) => item.course))].sort(),
-    [classes],
-  );
+  // Use the API subject/course list, plus names on existing sessions.
+  // This keeps historical sessions filterable if a course was archived.
+  const courseOptions = useMemo(() => {
+    const byId = new Map();
+
+    coursesFromApi.forEach((course) => {
+      byId.set(String(course.id), course);
+    });
+
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [coursesFromApi]);
+
+  const courses = useMemo(() => {
+    const names = new Set([
+      ...courseOptions.map((course) => course.name),
+      ...classes.map((item) => item.course).filter(Boolean),
+    ]);
+
+    return [...names].sort((a, b) => a.localeCompare(b));
+  }, [courseOptions, classes]);
 
   const presenters = useMemo(
-    () => [...new Set(classes.map((item) => item.presenter))].sort(),
+    () =>
+      [...new Set(classes.map((item) => item.presenter).filter(Boolean))].sort(
+        (a, b) => a.localeCompare(b),
+      ),
     [classes],
   );
 
@@ -509,20 +579,26 @@ export default function Classes() {
 
     return classes
       .filter((item) => {
-        const studentText = demoStudents
+        const studentText = students
           .filter((student) => item.studentIds.includes(student.id))
           .map((student) => student.name)
           .join(" ");
 
+        const searchableValues = [
+          item.course,
+          item.room,
+          item.presenter,
+          item.assistant,
+          studentText,
+        ];
+
         const matchesSearch =
           !search ||
-          [
-            item.course,
-            item.room,
-            item.presenter,
-            item.assistant,
-            studentText,
-          ].some((value) => value.toLowerCase().includes(search));
+          searchableValues.some((value) =>
+            String(value ?? "")
+              .toLowerCase()
+              .includes(search),
+          );
 
         const matchesCourse =
           courseFilter === "All courses" || item.course === courseFilter;
@@ -549,22 +625,36 @@ export default function Classes() {
           a.date.localeCompare(b.date) ||
           a.startTime.localeCompare(b.startTime),
       );
-  }, [classes, query, courseFilter, presenterFilter, dateFilter, statusFilter]);
+  }, [
+    classes,
+    students,
+    query,
+    courseFilter,
+    presenterFilter,
+    dateFilter,
+    statusFilter,
+  ]);
 
-  function saveClass(form) {
+  async function saveClass(form) {
+    const data = {
+      course: Number(form.course),
+      date: form.date,
+      start_time: form.startTime,
+      end_time: form.endTime,
+      room: form.room,
+      capacity: form.capacity,
+      presenter: Number(form.presenter),
+      assistant: form.assistant ? Number(form.assistant) : null,
+      students: form.studentIds,
+    };
+
     if (editingClass) {
-      setClasses((current) =>
-        current.map((item) =>
-          item.id === editingClass.id ? { ...item, ...form } : item,
-        ),
-      );
+      await api.patch(`/sessions/${editingClass.id}/`, data);
     } else {
-      setClasses((current) => [
-        ...current,
-        { ...form, id: `CLS-${String(Date.now()).slice(-5)}` },
-      ]);
+      await api.post("/sessions/", data);
     }
 
+    records.refresh();
     setDialogOpen(false);
     setEditingClass(null);
   }
@@ -583,8 +673,39 @@ export default function Classes() {
     setStatusFilter("All classes");
   }
 
+  const loading =
+    records.loading ||
+    courseRecords.loading ||
+    staffRecords.loading ||
+    studentRecords.loading;
+
+  const loadError =
+    records.error ||
+    courseRecords.error ||
+    staffRecords.error ||
+    studentRecords.error;
+
+  function retryLoading() {
+    records.refresh();
+    courseRecords.refresh();
+    staffRecords.refresh();
+    studentRecords.refresh();
+  }
+
   return (
     <main className="classes-page">
+      <RequestState
+        loading={loading}
+        error={loadError}
+        onRetry={retryLoading}
+      />
+
+      {actionError && (
+        <p className="crm-message crm-message--error" role="alert">
+          {actionError}
+        </p>
+      )}
+
       <section
         className="classes-toolbar"
         aria-label="Class management actions and filters"
@@ -611,7 +732,9 @@ export default function Classes() {
           >
             <option>All courses</option>
             {courses.map((course) => (
-              <option key={course}>{course}</option>
+              <option key={course} value={course}>
+                {course}
+              </option>
             ))}
           </select>
         </label>
@@ -624,7 +747,9 @@ export default function Classes() {
           >
             <option>All presenters</option>
             {presenters.map((presenter) => (
-              <option key={presenter}>{presenter}</option>
+              <option key={presenter} value={presenter}>
+                {presenter}
+              </option>
             ))}
           </select>
         </label>
@@ -653,16 +778,18 @@ export default function Classes() {
           </select>
         </label>
 
-        <button
-          className="classes-primary-button classes-create-button"
-          type="button"
-          onClick={() => {
-            setEditingClass(null);
-            setDialogOpen(true);
-          }}
-        >
-          <span aria-hidden="true">+</span> Create class
-        </button>
+        {canManage && (
+          <button
+            className="classes-primary-button classes-create-button"
+            type="button"
+            onClick={() => {
+              setEditingClass(null);
+              setDialogOpen(true);
+            }}
+          >
+            <span aria-hidden="true">+</span> Create class
+          </button>
+        )}
       </section>
 
       <section className="classes-panel" aria-labelledby="classes-list-title">
@@ -671,7 +798,6 @@ export default function Classes() {
             <h2 id="classes-list-title">Classes and sessions</h2>
             <p>Manage schedules, staff assignments and student enrolments.</p>
           </div>
-          <span className="classes-demo-label">Demo data</span>
         </div>
 
         <div className="classes-results" aria-live="polite">
@@ -720,6 +846,7 @@ export default function Classes() {
                   </th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredClasses.map((item) => {
                   const status = getStatus(item.date);
@@ -771,13 +898,16 @@ export default function Classes() {
                         >
                           View
                         </button>
-                        <button
-                          className="classes-edit-button"
-                          type="button"
-                          onClick={() => openEdit(item)}
-                        >
-                          Edit
-                        </button>
+
+                        {canManage && (
+                          <button
+                            className="classes-edit-button"
+                            type="button"
+                            onClick={() => openEdit(item)}
+                          >
+                            Edit
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -810,6 +940,9 @@ export default function Classes() {
             setEditingClass(null);
           }}
           onSave={saveClass}
+          courses={courseOptions}
+          staff={staff}
+          students={students}
         />
       )}
 
@@ -817,7 +950,30 @@ export default function Classes() {
         <ClassDetails
           classItem={selectedClass}
           onClose={() => setSelectedClass(null)}
-          onEdit={() => openEdit(selectedClass)}
+          students={students}
+          onEdit={canManage ? () => openEdit(selectedClass) : null}
+          onDelete={
+            canManage
+              ? async () => {
+                  if (
+                    !window.confirm(
+                      "Delete this class session? Sessions with recorded history cannot be deleted.",
+                    )
+                  ) {
+                    return;
+                  }
+
+                  try {
+                    await api.delete(`/sessions/${selectedClass.id}/`);
+                    setSelectedClass(null);
+                    records.refresh();
+                    setActionError("");
+                  } catch (requestError) {
+                    setActionError(errorMessage(requestError));
+                  }
+                }
+              : null
+          }
         />
       )}
     </main>
