@@ -1,6 +1,6 @@
 # ASP CRM
 
-Your existing React/Vite frontend, connected to a Django REST API using PostgreSQL.
+
 
 ## Implemented
 
