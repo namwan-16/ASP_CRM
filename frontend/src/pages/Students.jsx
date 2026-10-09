@@ -624,7 +624,7 @@ export default function Students() {
     <main className="students-page">
       <header className="students-page__heading">
         <div>
-          <h1>Students</h1>
+          <h1>Student Records</h1>
           <p className="students-page__description">
             View and manage student records.
           </p>

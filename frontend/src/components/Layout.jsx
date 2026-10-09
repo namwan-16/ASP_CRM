@@ -24,6 +24,7 @@ import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import PersonOutlineOutlined from "@mui/icons-material/PersonOutlineOutlined";
 import MenuOpenOutlined from "@mui/icons-material/MenuOpenOutlined";
+import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 
 import "./Layout.css";
 
@@ -79,7 +80,7 @@ export const sidebarPages = [
   {
     path: "/staff",
     label: "Staff & Permissions",
-    icon: FamilyRestroomOutlined,
+    icon: AdminPanelSettingsOutlined,
     adminOnly: true,
   },
 ];
