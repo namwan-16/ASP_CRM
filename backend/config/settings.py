@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -11,6 +12,8 @@ SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY", "unsafe-development-key-change-before-production"
 )
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
+if not DEBUG and (SECRET_KEY.startswith("unsafe-") or SECRET_KEY.startswith("change-")):
+    raise ImproperlyConfigured("Set a secure DJANGO_SECRET_KEY before disabling DEBUG.")
 ALLOWED_HOSTS = [
     item.strip()
     for item in os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
@@ -29,6 +32,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "accounts",
     "students",
+    "classes",
 ]
 
 MIDDLEWARE = [
@@ -64,8 +68,13 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "asp_crm"),
+        "USER": os.getenv("POSTGRES_USER", "asp_crm"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
+        "HOST": os.getenv("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": 60,
     }
 }
 
@@ -93,7 +102,24 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_FILTER_BACKENDS": (
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ),
+    "DEFAULT_PAGINATION_CLASS": "config.pagination.CrmPagination",
+    "PAGE_SIZE": 5,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {"auth": "20/min", "import": "10/min"},
+    "EXCEPTION_HANDLER": "config.exceptions.crm_exception_handler",
 }
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
@@ -101,20 +127,21 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
+    "CHECK_REVOKE_TOKEN": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 CORS_ALLOWED_ORIGINS = [
     item.strip()
     for item in os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+        "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
     ).split(",")
     if item.strip()
 ]
 CSRF_TRUSTED_ORIGINS = [
     item.strip()
     for item in os.getenv(
-        "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+        "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"
     ).split(",")
     if item.strip()
 ]

@@ -1,0 +1,540 @@
+.emergency-lookup-page {
+  --lookup-ink: var(--color-text, #172b3a);
+  --lookup-muted: var(--color-muted, #667085);
+  --lookup-border: var(--color-border, #d9e1e7);
+  --lookup-primary: var(--color-primary, #0f766e);
+  --lookup-surface: var(--color-surface, #fff);
+  --lookup-background: var(--color-background, #f8fafc);
+
+  display: grid;
+  width: 100%;
+  max-width: 1440px;
+  gap: 20px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+  color: var(--lookup-ink);
+  font-family: inherit;
+}
+
+.emergency-lookup-page * {
+  box-sizing: border-box;
+}
+
+.emergency-lookup-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.emergency-lookup-eyebrow {
+  margin: 0 0 7px;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.emergency-lookup-heading h1 {
+  margin: 0;
+  color: var(--lookup-primary);
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.2;
+}
+
+.emergency-lookup-heading__description {
+  margin: 8px 0 0;
+  color: var(--lookup-muted);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.emergency-lookup-heading__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #fecaca;
+  border-radius: 16px;
+  color: #b42318;
+  background: #fff1f0;
+}
+
+.emergency-lookup-heading__icon svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.emergency-lookup-panel,
+.emergency-student-card {
+  min-width: 0;
+  border: 1px solid var(--lookup-border);
+  border-radius: 14px;
+  background: var(--lookup-surface);
+  box-shadow: 0 4px 18px rgba(16, 47, 73, 0.04);
+}
+
+.emergency-lookup-panel {
+  padding: 22px 24px;
+  border-top: 4px solid #d92d20;
+}
+
+.emergency-lookup-panel > label {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--lookup-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.emergency-search {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 13px;
+  border: 1px solid #aebbc7;
+  border-radius: 10px;
+  background: var(--lookup-background);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.emergency-search:focus-within {
+  border-color: var(--lookup-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.16);
+}
+
+.emergency-search__icon {
+  display: inline-flex;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  color: var(--lookup-muted);
+}
+
+.emergency-search__icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.emergency-search input {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--lookup-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+}
+
+.emergency-search input::placeholder {
+  color: #7b8794;
+  opacity: 1;
+}
+
+.emergency-search input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
+
+.emergency-search__clear {
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 0 11px;
+  border: 1px solid var(--lookup-border);
+  border-radius: 7px;
+  color: var(--lookup-primary);
+  background: var(--lookup-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.emergency-search__clear:hover {
+  background: #e8f4f2;
+}
+
+.emergency-search__clear:focus-visible,
+.emergency-student-result:focus-visible,
+.emergency-contact-card a:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.25);
+  outline-offset: 2px;
+}
+
+.emergency-lookup-panel__hint {
+  margin: 9px 0 0;
+  color: var(--lookup-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.emergency-search-results {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.emergency-results-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.emergency-results-heading h2 {
+  margin: 0;
+  color: var(--lookup-ink);
+  font-size: 17px;
+}
+
+.emergency-results-heading p {
+  margin: 4px 0 0;
+  color: var(--lookup-muted);
+  font-size: 13px;
+}
+
+.emergency-student-results {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.emergency-student-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 16px;
+  width: 100%;
+  min-width: 0;
+  padding: 13px 15px;
+  border: 1px solid var(--lookup-border);
+  border-radius: 10px;
+  color: var(--lookup-ink);
+  background: var(--lookup-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.emergency-student-result:hover,
+.emergency-student-result--selected {
+  border-color: var(--lookup-primary);
+  background: #f0f8f7;
+}
+
+.emergency-student-result__name {
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.emergency-student-result__meta {
+  grid-column: 1;
+  color: var(--lookup-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.emergency-student-result__arrow {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--lookup-primary);
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.emergency-empty-state {
+  display: grid;
+  gap: 5px;
+  padding: 16px 18px;
+  border: 1px solid #fedf89;
+  border-radius: 10px;
+  color: #7a2e0e;
+  background: #fffaeb;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.emergency-empty-state span {
+  font-size: 13px;
+}
+
+.emergency-student-card {
+  display: grid;
+  gap: 20px;
+  padding: 22px 24px;
+}
+
+.emergency-student-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--lookup-border);
+}
+
+.emergency-student-card__eyebrow {
+  margin: 0 0 6px;
+  color: var(--lookup-muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.emergency-student-card__heading h2 {
+  margin: 0;
+  color: var(--lookup-primary);
+  font-size: 23px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.emergency-student-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.emergency-student-card__meta span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #344054;
+  background: #f2f4f7;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.emergency-contacts {
+  min-width: 0;
+}
+
+.emergency-contacts > h3 {
+  margin: 0 0 12px;
+  color: var(--lookup-ink);
+  font-size: 16px;
+}
+
+.emergency-contacts__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+
+.emergency-contact-card {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid #fecdca;
+  border-radius: 12px;
+  background: #fff8f7;
+}
+
+.emergency-contact-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.emergency-contact-card__heading h3 {
+  margin: 0;
+  color: #7a271a;
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.emergency-contact-card__heading p {
+  margin: 4px 0 0;
+  color: var(--lookup-muted);
+  font-size: 13px;
+}
+
+.emergency-contact-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.emergency-contact-card__badge {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #912018;
+  background: #fee4e2;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.emergency-contact-card__details {
+  display: grid;
+  gap: 9px;
+  margin: 16px 0;
+}
+
+.emergency-contact-card__details > div {
+  display: grid;
+  grid-template-columns: 75px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.emergency-contact-card__details dt {
+  color: var(--lookup-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.emergency-contact-card__details dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--lookup-ink);
+  font-size: 14px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.emergency-contact-card__details a {
+  color: var(--lookup-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.emergency-contact-card__missing {
+  margin: 14px 0 0;
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: #7a2e0e;
+  background: #fffaeb;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.emergency-contact-card__call {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  border-radius: 9px;
+  color: #fff;
+  background: #b42318;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background-color 150ms ease;
+}
+
+.emergency-contact-card__call:hover {
+  background: #912018;
+}
+
+.emergency-warning {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid #fecdca;
+  border-radius: 10px;
+  color: #912018;
+  background: #fff1f0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.emergency-medical {
+  margin: 0;
+  padding: 13px 15px;
+  border-left: 4px solid #d99b21;
+  border-radius: 0 9px 9px 0;
+  color: #624b17;
+  background: #fffaeb;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .emergency-student-card__heading {
+    flex-direction: column;
+  }
+
+  .emergency-student-card__meta {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .emergency-lookup-page {
+    gap: 15px;
+  }
+
+  .emergency-lookup-heading {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .emergency-lookup-heading__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .emergency-lookup-heading__icon svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .emergency-lookup-panel,
+  .emergency-student-card {
+    padding: 16px;
+  }
+
+  .emergency-search {
+    min-height: 46px;
+    padding: 0 9px;
+  }
+
+  .emergency-search input {
+    font-size: 14px;
+  }
+
+  .emergency-contact-card__heading,
+  .emergency-contact-card__badges {
+    justify-content: flex-start;
+  }
+
+  .emergency-contact-card__heading {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emergency-search,
+  .emergency-student-result,
+  .emergency-contact-card__call {
+    transition: none;
+  }
+}

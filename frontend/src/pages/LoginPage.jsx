@@ -1,84 +1,7 @@
-// import { useState } from "react";
-// import { Link, Navigate, useNavigate } from "react-router-dom";
-
-// import { useAuth } from "../context/AuthContext";
-
-// export default function LoginPage() {
-//   const { login, user } = useAuth();
-//   const navigate = useNavigate();
-//   const [form, setForm] = useState({ username: "", password: "" });
-//   const [error, setError] = useState("");
-//   const [submitting, setSubmitting] = useState(false);
-
-//   if (user) return <Navigate to="/dashboard" replace />;
-
-//   const handleSubmit = async (event) => {
-//     event.preventDefault();
-//     setError("");
-//     setSubmitting(true);
-//     try {
-//       await login(form.username, form.password);
-//       navigate("/dashboard", { replace: true });
-//     } catch {
-//       setError("The username or password is incorrect.");
-//     } finally {
-//       setSubmitting(false);
-//     }
-//   };
-
-//   return (
-//     <main className="auth-layout">
-//       <section className="brand-panel">
-//         <p className="eyebrow">Class Process Pipeline</p>
-//         <h1>ASP CRM</h1>
-//         <p>One secure workspace for class operations, presenters, and student support.</p>
-//       </section>
-
-//       <section className="auth-card">
-//         <div>
-//           <p className="eyebrow">Welcome back</p>
-//           <h2>Sign in</h2>
-//           <p className="muted">Use your ASP CRM account to continue.</p>
-//         </div>
-
-//         <form onSubmit={handleSubmit}>
-//           <label>
-//             Username
-//             <input
-//               autoComplete="username"
-//               required
-//               value={form.username}
-//               onChange={(event) => setForm({ ...form, username: event.target.value })}
-//             />
-//           </label>
-//           <label>
-//             Password
-//             <input
-//               type="password"
-//               autoComplete="current-password"
-//               required
-//               value={form.password}
-//               onChange={(event) => setForm({ ...form, password: event.target.value })}
-//             />
-//           </label>
-//           {error && <p className="error-message">{error}</p>}
-//           <button type="submit" disabled={submitting}>
-//             {submitting ? "Signing in…" : "Sign in"}
-//           </button>
-//         </form>
-
-//         <p className="muted">
-//           Need an account? <Link to="/register">Create account</Link>
-//         </p>
-//       </section>
-//     </main>
-//   );
-// }
-
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import secureLoginIllustration from "../assets/secure login.svg";
+import secureLoginIllustration from "../assets/Secure login.svg";
 import "./LoginPage.css";
 
 function BrandMark() {
@@ -109,8 +32,9 @@ function BrandMark() {
 export default function LoginPage() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [form, setForm] = useState({ username: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -129,25 +53,24 @@ export default function LoginPage() {
 
     setError("");
 
-    if (!username.trim() || !password.trim()) {
-      setError("Please enter both username and password.");
+    if (!form.email.trim() || !form.password) {
+      setError("Please enter both email and password.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await login(form.username.trim(), form.password);
+      await login(form.email.trim(), form.password);
       navigate("/dashboard", { replace: true });
     } catch {
       setError(
-        "We couldn’t sign you in. Check your username and password, then try again.",
+        "We couldn’t sign you in. Check your email and password, then try again.",
       );
     } finally {
       setSubmitting(false);
     }
   }
-
   return (
     <main className="login-page">
       <section className="login-page__art-panel" aria-label="ASP CRM">
@@ -175,17 +98,17 @@ export default function LoginPage() {
           </header>
 
           <form className="login-page__form" onSubmit={handleSubmit}>
-            <label className="login-page__field" htmlFor="login-username">
-              <span>Username</span>
+            <label className="login-page__field" htmlFor="login-email">
+              <span>Email address</span>
               <input
-                id="login-username"
-                name="username"
-                type="text"
-                autoComplete="username"
+                id="login-email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 autoCapitalize="none"
                 spellCheck="false"
                 required
-                value={form.username}
+                value={form.email}
                 onChange={updateField}
                 disabled={submitting}
               />
@@ -219,6 +142,11 @@ export default function LoginPage() {
               </span>
             </div>
 
+            {location.state?.message && (
+              <p className="crm-message crm-message--success" role="status">
+                {location.state.message}
+              </p>
+            )}
             {error && (
               <p className="login-page__error" role="alert">
                 {error}

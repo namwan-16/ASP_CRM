@@ -26,19 +26,16 @@
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 100;
-
   display: flex;
   width: var(--sidebar-width);
   height: 100vh;
   height: 100dvh;
   flex-direction: column;
   padding: 0 12px 16px;
-
   overflow-x: hidden;
   overflow-y: auto;
   background: var(--color-primary);
   color: #ffffff;
-
   scrollbar-width: thin;
   scrollbar-color: #7893aa var(--color-primary);
   transition:
@@ -140,7 +137,7 @@
 
 .crm-nav-link:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.12);
+  background: #2a5c8d;
 }
 
 .crm-nav-link-active,
@@ -149,6 +146,81 @@
   background: #2a5c8d;
   font-weight: 600;
 }
+
+/* Classes link, chevron and submenu */
+
+.crm-nav-group {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.crm-nav-group__row {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  border-radius: 11px;
+  transition: background-color 150ms ease;
+}
+
+.crm-nav-group__row--active {
+  background: #2a5c8d;
+}
+
+/* Keep the active row background continuous behind the link and chevron. */
+.crm-nav-group__row--active .crm-nav-link,
+.crm-nav-group__row--active .crm-nav-link:hover,
+.crm-nav-group__row--active .crm-nav-group__toggle,
+.crm-nav-group__row--active .crm-nav-group__toggle:hover {
+  color: #ffffff;
+  background: transparent;
+}
+
+/* Hovering either the Classes link or chevron highlights the entire row. */
+.crm-nav-group__row:hover {
+  background: #2a5c8d;
+}
+
+.crm-nav-group__row:hover .crm-nav-link,
+.crm-nav-group__row:hover .crm-nav-group__toggle,
+.crm-nav-group__row:hover .crm-nav-group__toggle:hover {
+  color: #ffffff;
+  background: transparent;
+}
+
+.crm-nav-group__toggle {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  color: #ffffff;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.crm-nav-group__toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.crm-nav-group__chevron {
+  transition: transform 160ms ease;
+}
+
+.crm-nav-group__chevron--expanded {
+  transform: rotate(180deg);
+}
+
+.crm-nav-sub-link {
+  width: 100%;
+}
+
+/* Icons and labels */
 
 .crm-layout .crm-menu-icon {
   width: 21px;
@@ -220,6 +292,10 @@
   display: none;
 }
 
+.crm-layout--collapsed .crm-nav-group__toggle {
+  width: 36px;
+}
+
 /* Keyboard focus */
 
 .crm-sidebar a:focus-visible,
@@ -250,15 +326,12 @@
   position: sticky;
   top: 0;
   z-index: 50;
-
   display: flex;
   min-width: 0;
-  /* min-height: 90px; */
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   padding: 12px 32px;
-
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
 }
@@ -288,7 +361,6 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  /* border: 1px solid red; */
 }
 
 .crm-header-actions {
@@ -370,7 +442,7 @@
   background: var(--color-background);
 }
 
-/* Profile menu content */
+/* Profile menu */
 
 .crm-profile-details {
   max-width: 280px;
@@ -396,6 +468,7 @@
   text-transform: capitalize;
 }
 
+.crm-profile-menu-item,
 .crm-profile-logout {
   gap: 12px;
   min-width: 160px;
@@ -503,6 +576,10 @@
     display: inline;
   }
 
+  .crm-layout--collapsed .crm-nav-group__toggle {
+    width: 42px;
+  }
+
   .crm-sidebar-backdrop {
     position: fixed;
     inset: 0;
@@ -582,7 +659,10 @@
   .crm-sidebar,
   .crm-workspace,
   .crm-nav-link,
-  .crm-emergency-link {
+  .crm-emergency-link,
+  .crm-nav-group__row,
+  .crm-nav-group__toggle,
+  .crm-nav-group__chevron {
     transition: none;
   }
 }
