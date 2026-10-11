@@ -7,17 +7,10 @@ from .models import Attendance, ClassSession, Course, ProgressNote, Registration
 
 class ClassWorkflowTests(APITestCase):
     def setUp(self):
-<<<<<<< HEAD
         self.admin = User.objects.create_user("admin@example.test", role="admin")
         self.presenter = User.objects.create_user("presenter@example.test", role="presenter")
         self.assistant = User.objects.create_user("assistant@example.test")
         self.outsider = User.objects.create_user("outsider@example.test", role="presenter")
-=======
-        self.admin = User.objects.create_user("admin", role="admin")
-        self.presenter = User.objects.create_user("presenter", role="presenter")
-        self.assistant = User.objects.create_user("assistant")
-        self.outsider = User.objects.create_user("outsider", role="presenter")
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.student = Student.objects.create(first_name="Ava", last_name="Example", date_of_birth="2013-01-15")
         self.other = Student.objects.create(first_name="Noah", last_name="Example", date_of_birth="2014-01-15")
         self.course = Course.objects.create(name="Maths")
@@ -119,7 +112,6 @@ class ClassWorkflowTests(APITestCase):
     def test_invalid_filter_is_a_validation_error(self):
         self.assertEqual(self.client.get("/api/attendance/?student=abc").status_code, 400)
         self.assertEqual(self.client.get("/api/reports/attendance/?date_from=wrong").status_code, 400)
-<<<<<<< HEAD
 
 
 class SessionLifecycleTests(APITestCase):
@@ -233,5 +225,3 @@ class ReportWorkflowTests(APITestCase):
         self.assertEqual(self.client.get(f"/api/sessions/{self.session.pk}/class-list/?export=csv").status_code, 200)
         self.client.force_authenticate(self.outsider)
         self.assertEqual(self.client.get(f"/api/sessions/{self.session.pk}/class-list/").status_code, 404)
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

@@ -211,7 +211,7 @@
 }
 
 .dashboard-action__title {
-  /* color: var(--color-primary); */
+  color: var(--color-primary);
   font-size: 16px;
   font-weight: 700;
 }
@@ -269,7 +269,6 @@
     padding: 16px;
   }
 }
-<<<<<<< HEAD
 
 @media (prefers-reduced-motion: reduce) {
   .dashboard-action,
@@ -277,12 +276,3 @@
     transition: none;
   }
 }
-=======
-.dashboard-action.dashboard-action--urgent {
-  background: #d63b3f;
-  border-color: #d63b3f;
-  color: #fff;
-}
-.dashboard-action--urgent .dashboard-action__description { color: rgba(255,255,255,.85); }
-.dashboard-action--urgent .dashboard-action__icon { background: rgba(255,255,255,.2); color: #fff; }
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

@@ -1,10 +1,6 @@
 import csv
 
-<<<<<<< HEAD
 from django.db import transaction
-=======
-from django.db import connection, transaction
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.utils import timezone
@@ -14,7 +10,6 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-<<<<<<< HEAD
 from accounts.permissions import AdminOnly, AdminWrite, assigned_sessions, is_admin, visible_students
 from config.query import filter_id
 from config.lifecycle import HistoryConflict, course_is_used
@@ -22,13 +17,6 @@ from students.models import Guardian
 from .models import Attendance, ClassSession, Course, NoteEvent, ProgressNote, Registration
 from .scheduling import lock_schedule
 from .serializers import AttendanceSerializer, ClassSessionSerializer, CourseSerializer, ProgressNoteSerializer, RegistrationSerializer, SessionStatusEventSerializer
-=======
-from accounts.permissions import AdminWrite, assigned_sessions, is_admin, visible_students
-from config.query import filter_id
-from students.models import Guardian
-from .models import Attendance, ClassSession, Course, ProgressNote, Registration
-from .serializers import AttendanceSerializer, ClassSessionSerializer, CourseSerializer, ProgressNoteSerializer, RegistrationSerializer
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -42,7 +30,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         qs = super().get_queryset()
         return qs if is_admin(self.request.user) else qs.filter(sessions__in=assigned_sessions(self.request.user)).distinct()
 
-<<<<<<< HEAD
     @transaction.atomic
     def perform_destroy(self, instance):
         instance = Course.objects.select_for_update().get(pk=instance.pk)
@@ -50,8 +37,6 @@ class CourseViewSet(viewsets.ModelViewSet):
             raise HistoryConflict("This subject is used by a student, enrolment or class session. Archive it instead.")
         instance.delete()
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 class RegistrationViewSet(viewsets.ModelViewSet):
     serializer_class = RegistrationSerializer
@@ -65,13 +50,10 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         qs = filter_id(qs, self.request.query_params, "student")
         return filter_id(qs, self.request.query_params, "course")
 
-<<<<<<< HEAD
     def destroy(self, request, *args, **kwargs):
         self.get_object()
         raise HistoryConflict("Enrolments are retained as history. Pause this enrolment instead.")
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 class ClassSessionViewSet(viewsets.ModelViewSet):
     serializer_class = ClassSessionSerializer
@@ -81,7 +63,6 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = assigned_sessions(self.request.user).select_related("course", "presenter", "assistant").prefetch_related("students")
-<<<<<<< HEAD
         qs = filter_id(qs, self.request.query_params, "course")
         qs = filter_id(qs, self.request.query_params, "presenter")
         if self.request.query_params.get("status"):
@@ -92,23 +73,10 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         lock_schedule()
-=======
-        return filter_id(qs, self.request.query_params, "course")
-
-    def lock_schedule(self):
-        if connection.vendor == "postgresql":
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [6202027])
-
-    @transaction.atomic
-    def create(self, request, *args, **kwargs):
-        self.lock_schedule()
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         return super().create(request, *args, **kwargs)
 
     @transaction.atomic
     def update(self, request, *args, **kwargs):
-<<<<<<< HEAD
         lock_schedule()
         ClassSession.objects.select_for_update().get(pk=self.get_object().pk)
         return super().update(request, *args, **kwargs)
@@ -150,12 +118,6 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
         from .reports import class_list_report
         return class_list_report(request, self.get_object())
 
-=======
-        self.lock_schedule()
-        ClassSession.objects.select_for_update().get(pk=self.get_object().pk)
-        return super().update(request, *args, **kwargs)
-
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     @action(detail=True, methods=["get"])
     def roster(self, request, pk=None):
         session = self.get_object()
@@ -163,12 +125,8 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
         return Response({"session": self.get_serializer(session).data, "students": [
             {"id": student.pk, "name": str(student), "year_level": student.year_level,
              "status": attendance[student.pk].status if student.pk in attendance else "",
-<<<<<<< HEAD
              "notes": attendance[student.pk].notes if student.pk in attendance else "",
              "attendance_id": attendance[student.pk].pk if student.pk in attendance else None}
-=======
-             "notes": attendance[student.pk].notes if student.pk in attendance else ""}
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             for student in session.students.order_by("last_name", "first_name")
         ]})
 
@@ -176,13 +134,9 @@ class ClassSessionViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def mark_attendance(self, request, pk=None):
         session = self.get_object()
-<<<<<<< HEAD
         session = ClassSession.objects.select_for_update().get(pk=session.pk)
         if session.status != ClassSession.Status.SCHEDULED:
             raise ValidationError({"session": "Attendance is read-only for cancelled or archived sessions."})
-=======
-        ClassSession.objects.select_for_update().get(pk=session.pk)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         records = request.data.get("records") if isinstance(request.data, dict) else None
         if not isinstance(records, list) or not records or len(records) > 500:
             raise ValidationError({"records": "Send between 1 and 500 attendance records."})
@@ -227,38 +181,26 @@ class AttendanceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
-<<<<<<< HEAD
             session = serializer.validated_data["session"]
             session.refresh_from_db(from_queryset=ClassSession.objects.select_for_update())
-=======
-            ClassSession.objects.select_for_update().get(pk=serializer.validated_data["session"].pk)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             serializer.validate(serializer.validated_data)
             serializer.save(marked_by=self.request.user)
 
     def perform_update(self, serializer):
-<<<<<<< HEAD
         with transaction.atomic():
             session = serializer.validated_data.get("session", serializer.instance.session)
             session.refresh_from_db(from_queryset=ClassSession.objects.select_for_update())
             serializer.validate(serializer.validated_data)
             serializer.save(marked_by=self.request.user)
-=======
-        serializer.save(marked_by=self.request.user)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
     def perform_destroy(self, instance):
         if not is_admin(self.request.user):
             raise PermissionDenied("Only an admin can delete attendance history.")
-<<<<<<< HEAD
         with transaction.atomic():
             session = ClassSession.objects.select_for_update().get(pk=instance.session_id)
             if session.status != ClassSession.Status.SCHEDULED:
                 raise ValidationError("Attendance is read-only for cancelled or archived sessions.")
             instance.delete()
-=======
-        instance.delete()
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 class ProgressNoteViewSet(viewsets.ModelViewSet):
@@ -270,7 +212,6 @@ class ProgressNoteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = ProgressNote.objects.select_related("student", "author").filter(student__in=visible_students(self.request.user))
         qs = qs.filter(Q(session__isnull=True) | Q(session__in=assigned_sessions(self.request.user)))
-<<<<<<< HEAD
         deleted = serializers.BooleanField().run_validation(self.request.query_params.get("is_deleted", False))
         if self.action != "restore":
             qs = qs.filter(is_deleted=deleted)
@@ -349,24 +290,6 @@ class ProgressNoteViewSet(viewsets.ModelViewSet):
         return Response([{"id": event.pk, "action": event.action, "text": event.text, "date": event.date,
                           "actor": event.actor_id, "actor_name": str(event.actor) if event.actor else "Former staff",
                           "occurred_at": event.occurred_at} for event in events])
-=======
-        return filter_id(qs, self.request.query_params, "student")
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-    def check_author(self, instance):
-        if not is_admin(self.request.user) and instance.author_id != self.request.user.pk:
-            raise PermissionDenied("You may only edit or delete notes you wrote.")
-
-    def perform_update(self, serializer):
-        self.check_author(serializer.instance)
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        self.check_author(instance)
-        instance.delete()
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 @api_view(["GET"])
@@ -376,13 +299,8 @@ def dashboard(request):
     counts = dict(Attendance.objects.filter(session__in=sessions).values("status").annotate(total=Count("id")).values_list("status", "total"))
     return Response({"students": students.count(), "active_students": students.filter(is_active=True).count(),
                      "guardians": Guardian.objects.filter(student_links__student__in=students).distinct().count(),
-<<<<<<< HEAD
                      "sessions_today": sessions.filter(date=timezone.localdate(), status=ClassSession.Status.SCHEDULED).count(),
                      "attendance": counts, "progress_notes": ProgressNote.objects.filter(student__in=students, is_deleted=False).filter(Q(session__isnull=True) | Q(session__in=sessions)).count()})
-=======
-                     "sessions_today": sessions.filter(date=timezone.localdate()).count(),
-                     "attendance": counts, "progress_notes": ProgressNote.objects.filter(student__in=students).filter(Q(session__isnull=True) | Q(session__in=sessions)).count()})
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 def safe_cell(value):

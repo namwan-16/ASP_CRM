@@ -33,30 +33,20 @@ class GuardianLinkInput(serializers.Serializer):
 
 class GuardianSerializer(serializers.ModelSerializer):
     students = serializers.SerializerMethodField()
-<<<<<<< HEAD
     can_delete = serializers.SerializerMethodField()
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     links = GuardianLinkInput(many=True, write_only=True, required=False)
 
     class Meta:
         model = Guardian
-<<<<<<< HEAD
         fields = ("id", "first_name", "last_name", "email", "phone", "students", "links", "can_delete", "created_at", "updated_at")
-=======
-        fields = ("id", "first_name", "last_name", "email", "phone", "students", "links", "created_at", "updated_at")
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_phone(self, value):
         return normalize_phone(value)
 
-<<<<<<< HEAD
     def get_can_delete(self, obj):
         return not obj.student_links.exists()
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     def validate_links(self, value):
         if len({link["student"].pk for link in value}) != len(value):
             raise serializers.ValidationError("A student can only be linked once.")
@@ -78,12 +68,8 @@ class GuardianSerializer(serializers.ModelSerializer):
     def save_links(self, guardian, links):
         if links is None:
             return
-<<<<<<< HEAD
         ids = set(guardian.student_links.values_list("student_id", flat=True)) | {link["student"].pk for link in links}
         list(Student.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
-=======
-        list(Student.objects.select_for_update().filter(pk__in=[link["student"].pk for link in links]).order_by("pk"))
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         for link in links:
             if link.get("is_primary_contact") and StudentGuardian.objects.filter(
                 student=link["student"], is_primary_contact=True
@@ -126,13 +112,10 @@ class StudentGuardianSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
-<<<<<<< HEAD
     from classes.models import Course
     subject_id = serializers.PrimaryKeyRelatedField(source="subject_course", queryset=Course.objects.all(),
                                                    required=False, allow_null=True)
     can_delete = serializers.SerializerMethodField()
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     guardians = StudentGuardianSerializer(source="guardian_links", many=True, read_only=True)
     guardian_id = serializers.PrimaryKeyRelatedField(queryset=Guardian.objects.all(), write_only=True, required=False, allow_null=True)
     guardian_relationship = serializers.CharField(write_only=True, required=False, default="Guardian", max_length=50)
@@ -141,11 +124,7 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ("id", "first_name", "last_name", "date_of_birth", "school", "year_level", "email", "phone", "subject",
                   "permission_to_travel_alone", "is_active", "medical_information", "special_circumstances", "guardians",
-<<<<<<< HEAD
                   "guardian_id", "guardian_relationship", "subject_id", "can_delete", "created_at", "updated_at")
-=======
-                  "guardian_id", "guardian_relationship", "created_at", "updated_at")
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_date_of_birth(self, value):
@@ -156,7 +135,6 @@ class StudentSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         return normalize_phone(value) if value else value
 
-<<<<<<< HEAD
     def get_can_delete(self, obj):
         from config.lifecycle import student_has_history
         return not student_has_history(obj)
@@ -187,8 +165,6 @@ class StudentSerializer(serializers.ModelSerializer):
             data["subject"] = instance.subject_course.name
         return data
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     def save_guardian(self, student, guardian, relationship):
         if guardian:
             StudentGuardian.objects.filter(student=student, is_primary_contact=True).update(is_primary_contact=False)
@@ -215,12 +191,9 @@ class StudentSerializer(serializers.ModelSerializer):
             StudentGuardian.objects.filter(student=student, is_primary_contact=True).update(is_primary_contact=False)
         self.save_guardian(student, guardian, relationship)
         return student
-<<<<<<< HEAD
 
 
 class EmergencyStudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ("id", "first_name", "last_name", "year_level", "is_active")
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

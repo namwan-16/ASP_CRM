@@ -27,14 +27,11 @@ class Registration(models.Model):
 
 
 class ClassSession(models.Model):
-<<<<<<< HEAD
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "Scheduled"
         CANCELLED = "cancelled", "Cancelled"
         ARCHIVED = "archived", "Archived"
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="sessions")
     date = models.DateField()
     start_time = models.TimeField()
@@ -42,7 +39,6 @@ class ClassSession(models.Model):
     room = models.CharField(max_length=150)
     capacity = models.PositiveIntegerField(default=20)
     presenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="presented_sessions")
-<<<<<<< HEAD
     assistant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="assisted_sessions", null=True, blank=True)
     students = models.ManyToManyField("students.Student", related_name="class_sessions", blank=True)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.SCHEDULED, db_index=True)
@@ -50,10 +46,6 @@ class ClassSession(models.Model):
     status_changed_at = models.DateTimeField(null=True, blank=True)
     status_changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
                                          null=True, blank=True, related_name="session_status_changes")
-=======
-    assistant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="assisted_sessions", null=True, blank=True)
-    students = models.ManyToManyField("students.Student", related_name="class_sessions", blank=True)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -68,7 +60,6 @@ class ClassSession(models.Model):
         return f"{self.course} - {self.date}"
 
 
-<<<<<<< HEAD
 class SessionStatusEvent(models.Model):
     session = models.ForeignKey(ClassSession, on_delete=models.PROTECT, related_name="status_events")
     previous_status = models.CharField(max_length=12, blank=True)
@@ -81,8 +72,6 @@ class SessionStatusEvent(models.Model):
         ordering = ["-changed_at", "-id"]
 
 
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 class Attendance(models.Model):
     class Status(models.TextChoices):
         PRESENT = "present", "Present"
@@ -94,11 +83,7 @@ class Attendance(models.Model):
     student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="attendance")
     status = models.CharField(max_length=10, choices=Status.choices)
     notes = models.TextField(blank=True)
-<<<<<<< HEAD
     marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
-=======
-    marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -111,21 +96,16 @@ class ProgressNote(models.Model):
     session = models.ForeignKey(ClassSession, on_delete=models.PROTECT, related_name="progress_notes", null=True, blank=True)
     text = models.TextField(max_length=10000)
     date = models.DateField(default=timezone.localdate)
-<<<<<<< HEAD
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
                                    related_name="deleted_progress_notes")
-=======
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-date", "-created_at"]
-<<<<<<< HEAD
 
 
 class NoteEvent(models.Model):
@@ -138,5 +118,3 @@ class NoteEvent(models.Model):
 
     class Meta:
         ordering = ["-occurred_at", "-id"]
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

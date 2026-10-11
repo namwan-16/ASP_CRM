@@ -12,19 +12,11 @@ Base URL: `http://127.0.0.1:8000/api`. All CRM endpoints require `Authorization:
 | GET | `/auth/me/` | Current user including `can_manage` |
 | POST | `/auth/logout/` | Blacklist the authenticated user's refresh token |
 | GET, POST | `/auth/users/` | List staff / admin creates an account |
-<<<<<<< HEAD
 | GET, PATCH, DELETE | `/auth/users/{id}/` | View / admin changes role or active status; delete unused accounts only |
 
 Login accepts `email` and `password`. Registration accepts `first_name`, `last_name`, required `email`, `password`, `password_confirm`. Staff creation accepts the same fields except `password_confirm`, plus `role` and `is_active`. Usernames are not stored or returned, and registration/staff writes reject a `username` field. Emails are normalized and unique case-insensitively. Roles are `admin`, `presenter`, `assistant`; superusers are managed through Django, not through an API privilege flag. See [EMAIL_LOGIN.md](EMAIL_LOGIN.md) for the existing-account upgrade.
 
 Only administrators can change staff roles or active status. Staff cannot change their own role or deactivate themselves; the last active administrator cannot be deactivated or demoted. A non-superuser admin cannot modify a superuser. Passwords are hashed and never returned. Logout revokes refresh tokens; an already-issued access token remains valid until its 15-minute expiry unless the account is deactivated.
-=======
-| GET, PATCH | `/auth/users/{id}/` | View / admin changes role, profile, password or active status |
-
-Registration accepts `username`, `first_name`, `last_name`, `email`, `password`, `password_confirm`. Staff creation accepts the same fields except `password_confirm`, plus `role` and `is_active`. Roles are `admin`, `presenter`, `assistant`; superusers are managed through Django, not through an API privilege flag.
-
-Staff cannot change their own role or deactivate themselves. A non-superuser admin cannot modify a superuser. Passwords are hashed and never returned. Logout revokes refresh tokens; an already-issued access token remains valid until its 15-minute expiry unless the account is deactivated.
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 ## CRUD Resources
 
@@ -32,11 +24,7 @@ Collection paths support GET/list and POST/create. Detail paths support GET, PUT
 
 | Resource | Path | Important fields |
 | --- | --- | --- |
-<<<<<<< HEAD
 | Students | `/students/` | `first_name`, `last_name`, `date_of_birth`, `school`, `year_level`, `subject_id`, displayed `subject` (legacy name input supported), `email`, `phone`, `medical_information`, `special_circumstances`, `permission_to_travel_alone`, `is_active` |
-=======
-| Students | `/students/` | `first_name`, `last_name`, `date_of_birth`, `school`, `year_level`, `subject`, `email`, `phone`, `medical_information`, `special_circumstances`, `permission_to_travel_alone`, `is_active` |
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 | Guardians | `/guardians/` | `first_name`, `last_name`, `phone`, `email`, optional writable `links` |
 | Student/guardian links | `/student-guardians/` | `student`, `guardian`, `relationship`, `is_primary_contact`, `is_emergency_contact` |
 | Courses | `/courses/` | `name`, `description`, `is_active` |
@@ -62,11 +50,7 @@ Guardian `links` is an optional array. When supplied it replaces this guardian's
 
 The API allows one primary guardian per student. Creating a session validates positive capacity, distinct active students, appropriate active staff roles, non-overlapping room/staff assignments and end time after start time. It also creates/reactivates course registrations for its roster.
 
-<<<<<<< HEAD
 Pagination returns `count`, `next`, `previous`, `results`. Default page size is 5. Use `?page=2&page_size=5`; maximum page size is 500. Supported collections expose `?search=...`. Students accept `?is_active=true`; links accept `?student=1&guardian=2`; registrations accept `?student=1&course=2`; sessions accept `?course=2`; attendance accepts `?session=1&student=2`; notes accept `?student=1`.
-=======
-Pagination returns `count`, `next`, `previous`, `results`. Use `?page=2&page_size=100`; maximum page size is 500. Supported collections expose `?search=...`. Students accept `?is_active=true`; links accept `?student=1&guardian=2`; registrations accept `?student=1&course=2`; sessions accept `?course=2`; attendance accepts `?session=1&student=2`; notes accept `?student=1`.
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 ## Attendance and Emergency Lookup
 
@@ -130,7 +114,6 @@ Failed files return HTTP 400 with `detail` and an `errors` array containing each
 - `GET /reports/attendance/`: paginated attendance records, scoped to assigned sessions for staff.
 - Report filters: `session`, `date_from`, `date_to`, `status`.
 - `GET /reports/attendance/?export=csv`: CSV export; formula-leading cells are neutralized.
-<<<<<<< HEAD
 - `GET /reports/summary/` generates the frontend reports on the backend. See the new endpoints below. Progress-note reports are not a full audit log.
 
 Errors: HTTP 401 for unauthenticated access, 403 for forbidden actions, 404 for records outside the user's assignment scope, 400 for validation, 409 for protected history/conflicting records, 429 for throttling.
@@ -194,8 +177,3 @@ Presenters may edit all notes in their assignment scope, preserving the original
 `PATCH /students/{id}/` accepts numeric `subject_id` from `/courses/`, or `null` to clear. The response's displayed `subject` follows the referenced name. New selections require an active subject. Existing archived selections may be retained while editing another field. Legacy `subject` name input and imports resolve to an active existing subject; unknown/new archived choices return 400.
 
 `Guardian.students` returns link records containing `id`, `student`, `name`, `relationship`, `is_primary_contact` and `is_emergency_contact`. `phone` is the persisted phone field. Frontend-only business/address/attachment fields are not supported by this API.
-=======
-- The frontend also summarizes live sessions, attendance and progress notes and exports the selected summary to CSV. Session-enrolment figures count places across sessions, not unique students. Attendance rates use marked attendance records; late counts as attended. Progress-note reports are not a full audit log.
-
-Errors: HTTP 401 for unauthenticated access, 403 for forbidden actions, 404 for records outside the user's assignment scope, 400 for validation, 409 for protected history/conflicting records, 429 for throttling.
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

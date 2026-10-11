@@ -55,8 +55,5 @@
   .rp-stats { grid-template-columns: 1fr; }
   .rp-tr { padding: 12px 14px; font-size: 14px; }
 }
-<<<<<<< HEAD
 .rp-definition { color: var(--rp-muted); font-size: 13px; line-height: 1.5; }
 .rp-tr span { overflow-wrap: anywhere; white-space: pre-wrap; }
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

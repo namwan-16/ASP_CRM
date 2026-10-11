@@ -5,7 +5,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import User
 from .permissions import is_admin
-<<<<<<< HEAD
 
 
 def validate_login_email(value, instance=None):
@@ -31,8 +30,6 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         attrs["email"] = User.objects.normalize_email(attrs["email"])
         return super().validate(attrs)
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -43,11 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-<<<<<<< HEAD
         fields = ("id", "email", "first_name", "last_name", "role", "can_manage")
-=======
-        fields = ("id", "username", "email", "first_name", "last_name", "role", "can_manage")
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         read_only_fields = ("id", "role")
 
 
@@ -81,7 +74,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop("password_confirm")
-<<<<<<< HEAD
         return User.objects.create_user(**validated_data, role=User.Role.ASSISTANT, is_active=False)
 
 
@@ -105,39 +97,13 @@ class StaffSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if "username" in self.initial_data:
             raise serializers.ValidationError({"username": "Use email instead. Usernames are no longer supported."})
-=======
-        password = validated_data.pop("password")
-        user = User(**validated_data, role=User.Role.ASSISTANT, is_active=False)
-        user.set_password(password)
-        user.save()
-        return user
-
-
-class StaffSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=False)
-
-    class Meta:
-        model = User
-        fields = ("id", "username", "first_name", "last_name", "email", "role", "is_active", "password")
-        read_only_fields = ("id",)
-
-    def validate(self, attrs):
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         user = self.instance or User(**{key: value for key, value in attrs.items() if key != "password"})
         if not self.instance and not attrs.get("password"):
             raise serializers.ValidationError({"password": "A password is required."})
         if attrs.get("password"):
             validate_password(attrs["password"], user=user)
-<<<<<<< HEAD
         from .lifecycle import validate_staff_access
         validate_staff_access(self.instance, attrs, self.context["request"].user)
-=======
-        if self.instance and self.instance.is_superuser and not self.context["request"].user.is_superuser:
-            raise serializers.ValidationError("Only a superuser can change another superuser.")
-        if self.instance == self.context["request"].user:
-            if attrs.get("is_active") is False or attrs.get("role", user.role) != user.role:
-                raise serializers.ValidationError("You cannot deactivate or change your own role.")
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         return attrs
 
     def create(self, validated_data):
@@ -151,7 +117,6 @@ class StaffSerializer(serializers.ModelSerializer):
             instance.save(update_fields=["password"])
         return instance
 
-<<<<<<< HEAD
 
 
 class ProfileSerializer(UserSerializer):
@@ -185,5 +150,3 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError({"new_password": "Choose a different password."})
         validate_password(attrs["new_password"], user=user)
         return attrs
-=======
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

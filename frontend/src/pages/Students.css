@@ -190,7 +190,6 @@
 
 /* The table retains its columns and scrolls horizontally on narrow screens. */
 .students-table-wrap {
-  position: relative;
   width: 100%;
   min-width: 0;
   overflow-x: auto;

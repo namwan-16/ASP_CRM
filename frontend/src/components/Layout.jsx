@@ -83,11 +83,6 @@ export const sidebarPages = [
     icon: AdminPanelSettingsOutlined,
     adminOnly: true,
   },
-<<<<<<< HEAD
-=======
-  { path: "/reports", label: "Reports", icon: AssessmentOutlined },
-  { path: "/staff", label: "Staff & Roles", icon: FamilyRestroomOutlined, adminOnly: true },
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 ];
 
 function isAdministrator(user) {
@@ -223,7 +218,6 @@ export default function Layout() {
         </div>
 
         <nav className="crm-nav" aria-label="Main navigation">
-<<<<<<< HEAD
           {visiblePages.map(({ path, label, icon: Icon }) => {
             if (path === "/classes") {
               return (
@@ -318,22 +312,6 @@ export default function Layout() {
               </NavLink>
             );
           })}
-=======
-          {sidebarPages.filter((page) => !page.adminOnly || user?.can_manage).map(({ path, label, icon: Icon }) => (
-            <NavLink
-              key={path}
-              to={path}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                `crm-nav-link${isActive ? " crm-nav-link-active" : ""}`
-              }
-              onClick={closeMobileSidebar}
-            >
-              <Icon className="crm-menu-icon" aria-hidden="true" />
-              <span>{label}</span>
-            </NavLink>
-          ))}
->>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         </nav>
 
         <div className="crm-sidebar-footer">
