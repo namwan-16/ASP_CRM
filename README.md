@@ -1,6 +1,7 @@
 # ASP CRM
 
 
+<<<<<<< HEAD
 ## Implemented
 
 - Student creation, search, viewing, editing, deactivation and deletion when there is no protected history.
@@ -17,6 +18,25 @@ Payment/refund, SharePoint integration, emails and document uploads are not incl
 ## Requirements
 
 Python 3.11+, Node.js 20.19+ and PostgreSQL 14+.
+=======
+
+## Implemented
+
+- Student creation, search, viewing, editing, deactivation and deletion when there is no protected history.
+- Guardian management, multiple student links, primary/emergency contact flags and emergency lookup.
+- Courses, enrolments and class sessions with presenter/assistant assignments and session rosters.
+- Attendance: present, absent, late or excused; atomic bulk saves and updates per session.
+- Progress notes with author tracking; staff can edit their own notes, admins can manage all notes.
+- JWT login, token refresh/logout, account approval and backend-enforced role permissions.
+- Excel `.xlsx` and UTF-8 CSV import, downloadable template, dry-run preview and row-level errors.
+- Live dashboard and attendance, late-arrival, session-enrolment and progress-note reports with CSV export.
+
+Payment/refund, SharePoint integration, emails, document uploads and PDF reports are not included in this version.
+
+## Requirements
+
+Python 3.11+, Node.js 20.19+ and PostgreSQL 14+ (tested on PostgreSQL 16).
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 Docker Desktop is optional: it can run just the database while Python and Node run normally.
 
 ## 1. Configure PostgreSQL
@@ -99,7 +119,11 @@ Open [http://localhost:5173](http://localhost:5173). Sign in with the superuser 
 5. Sign in as assigned staff to mark attendance and add progress notes.
 6. Use **Emergency Lookup** to search a student and call their emergency contacts.
 
+<<<<<<< HEAD
 Course enrolment and a session roster are separate. Creating a session or assigning new roster students enrols those students in that course; ordinary session edits preserve paused enrolments; creating a course enrolment alone does not assign the student to every session.
+=======
+Course enrolment and a session roster are separate. Creating/updating a session enrols its selected students in that course; creating a course enrolment alone does not assign the student to every session.
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 ## Role Permissions
 
@@ -108,13 +132,21 @@ Course enrolment and a session roster are separate. Creating a session or assign
 | Student/guardian records | Manage all | View assigned students and their contacts |
 | Courses/enrolments/sessions | Manage all | View assigned classes |
 | Attendance | Manage all | Record/update assigned session rosters |
+<<<<<<< HEAD
 | Progress notes | Manage all, including restore | Presenters edit visible notes; delete/restore own. Assistants edit/delete/restore own visible notes |
+=======
+| Progress notes | Manage all | View assigned students; edit/delete own notes |
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 | Emergency lookup/reports | All records | Assigned student/class records |
 | Import and staff/role changes | Yes | No |
 
 New public sign-ups are inactive assistants until approved. They cannot choose an elevated role or sign in before approval. Deactivating staff blocks API access and token refresh. Staff assignment scope includes both past and future assigned sessions.
 
+<<<<<<< HEAD
 All session deletion is blocked: use Cancel or Archive in Classes > View. Cancelled and archived sessions retain their roster, attendance, notes and status audit history, release their schedule booking, and become read-only. Restore rechecks conflicts. A session with attendance/notes cannot change its original date, time, room or subject, or remove students with history. Student deletion is blocked if attendance or progress-note history exists. Student deletion is also blocked when course registrations exist. Deactivate records instead. Removing students from a session with recorded attendance/notes is blocked.
+=======
+Student/session deletion is blocked if attendance or progress-note history exists. Student deletion is also blocked when course registrations exist. Deactivate records instead. Removing students from a session with recorded attendance/notes is blocked.
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 ## Excel / CSV Import
 
@@ -148,9 +180,25 @@ python manage.py test --settings=config.test_settings
 
 This fallback applies only to tests. Normal application settings always use PostgreSQL.
 
+<<<<<<< HEAD
 From `frontend`, run `npm test` for component workflow tests and `npm run build` for the production build.
 
 ## Before Deployment
+=======
+From `frontend`, run `npm run build` to verify the frontend production build.
+
+## Before Deployment
+
+- Set a strong secret, `DJANGO_DEBUG=False` and exact allowed hosts/CORS origins.
+- Use HTTPS and a production WSGI/ASGI server, not Django's development server.
+- Keep secrets, database files, dependency folders and real student data out of Git.
+- Configure database backups, restore testing and an approved retention policy.
+- Use a shared cache for throttling if deploying multiple workers; the default cache is process-local.
+- Restrict Django administration to trusted superusers. Its direct model forms do not use API serializer validation.
+- Review the permission matrix with your client/supervisor before using real student data.
+
+Reference documentation: [Django PostgreSQL](https://docs.djangoproject.com/en/5.2/ref/databases/#postgresql-notes), [DRF permissions](https://www.django-rest-framework.org/api-guide/permissions/), [openpyxl](https://openpyxl.readthedocs.io/en/stable/tutorial.html).
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 - Set a strong secret, `DJANGO_DEBUG=False` and exact allowed hosts/CORS origins.
 - Use HTTPS and a production WSGI/ASGI server, not Django's development server.

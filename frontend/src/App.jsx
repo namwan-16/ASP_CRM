@@ -9,13 +9,17 @@ import DashboardPage from "./pages/DashboardPage";
 import Students from "./pages/Students";
 import Guardians from "./pages/Guardians";
 import Classes from "./pages/Classes";
+<<<<<<< HEAD
 import Subjects from "./pages/Subjects";
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 import EmergencyLookup from "./pages/EmergencyLookup";
 import ProgressNotes from "./pages/ProgressNotes";
 import Reports from "./pages/Reports";
 import Attendance from "./pages/Attendance";
 import Registrations from "./pages/Registrations";
 import Staff from "./pages/Staff";
+<<<<<<< HEAD
 import Profile from "./pages/Profile";
 
 import "./features.css";
@@ -31,6 +35,10 @@ function isAdministrator(user) {
     ["admin", "administrator", "administration"].includes(role),
   );
 }
+=======
+import "./features.css";
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 function RoleHomeRedirect() {
   const { user } = useAuth();
@@ -70,6 +78,7 @@ export default function App() {
           </Route>
 
           <Route path="/classes" element={<Classes />} />
+<<<<<<< HEAD
           <Route path="/subjects" element={<Subjects />} />
           <Route path="/attendance" element={<Attendance />} />
           <Route path="/progress-notes" element={<ProgressNotes />} />
@@ -78,7 +87,19 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
 
           <Route path="*" element={<RoleHomeRedirect />} />
+=======
+          <Route path="/progress-notes" element={<ProgressNotes />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/registrations" element={<Registrations />} />
+          <Route path="/staff" element={<Staff />} />
+
+          <Route
+            path="/emergency-lookup"
+            element={<EmergencyLookup />} />
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         </Route>
+        
       </Route>
     </Routes>
   );

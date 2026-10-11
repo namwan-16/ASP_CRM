@@ -107,7 +107,11 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ),
     "DEFAULT_PAGINATION_CLASS": "config.pagination.CrmPagination",
+<<<<<<< HEAD
     "PAGE_SIZE": 5,
+=======
+    "PAGE_SIZE": 100,
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.ScopedRateThrottle",
     ),

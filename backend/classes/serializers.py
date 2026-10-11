@@ -6,6 +6,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from accounts.permissions import assigned_sessions, visible_students
 from students.models import Student
+<<<<<<< HEAD
 from .models import Attendance, ClassSession, Course, ProgressNote, Registration, SessionStatusEvent
 
 
@@ -25,6 +26,15 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = ("id", "name", "description", "is_active", "can_delete")
+=======
+from .models import Attendance, ClassSession, Course, ProgressNote, Registration
+
+
+class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ("id", "name", "description", "is_active")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -39,13 +49,17 @@ class RegistrationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         student = attrs.get("student", getattr(self.instance, "student", None))
         course = attrs.get("course", getattr(self.instance, "course", None))
+<<<<<<< HEAD
         if self.instance and (student.pk != self.instance.student_id or course.pk != self.instance.course_id):
             raise serializers.ValidationError("An existing enrolment cannot be moved. Pause it and create a separate enrolment instead.")
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         if attrs.get("is_active", getattr(self.instance, "is_active", True)) and (not student.is_active or not course.is_active):
             raise serializers.ValidationError("Choose an active student and course.")
         return attrs
 
 
+<<<<<<< HEAD
 class SessionStatusEventSerializer(serializers.ModelSerializer):
     changed_by_name = serializers.CharField(source="changed_by.__str__", read_only=True, default="Former staff")
 
@@ -55,19 +69,25 @@ class SessionStatusEventSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 class ClassSessionSerializer(serializers.ModelSerializer):
     course_name = serializers.CharField(source="course.name", read_only=True)
     presenter_name = serializers.CharField(source="presenter.__str__", read_only=True)
     assistant_name = serializers.CharField(source="assistant.__str__", read_only=True, default="")
     students = serializers.PrimaryKeyRelatedField(queryset=Student.objects.all(), many=True, required=False)
+<<<<<<< HEAD
     has_history = serializers.SerializerMethodField()
 
     def get_has_history(self, obj):
         return obj.attendance.exists() or obj.progress_notes.exists()
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
     class Meta:
         model = ClassSession
         fields = ("id", "course", "course_name", "date", "start_time", "end_time", "room", "capacity",
+<<<<<<< HEAD
                   "presenter", "presenter_name", "assistant", "assistant_name", "students", "status",
                   "status_reason", "status_changed_at", "status_changed_by", "has_history", "created_at", "updated_at")
         read_only_fields = ("id", "status_changed_at", "status_changed_by", "created_at", "updated_at")
@@ -88,11 +108,23 @@ class ClassSessionSerializer(serializers.ModelSerializer):
         if value("end_time") <= value("start_time"):
             raise serializers.ValidationError({"end_time": "End time must be later than start time."})
         capacity = value("capacity", 20)
+=======
+                  "presenter", "presenter_name", "assistant", "assistant_name", "students", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def validate(self, attrs):
+        def value(name):
+            return attrs.get(name, getattr(self.instance, name, None))
+        if value("end_time") <= value("start_time"):
+            raise serializers.ValidationError({"end_time": "End time must be later than start time."})
+        capacity = attrs.get("capacity", getattr(self.instance, "capacity", 20))
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         students = attrs.get("students", list(self.instance.students.all()) if self.instance else [])
         if capacity < 1 or len(students) > capacity:
             raise serializers.ValidationError({"capacity": "Capacity must be positive and fit the roster."})
         if len({student.pk for student in students}) != len(students):
             raise serializers.ValidationError({"students": "The roster contains duplicate students."})
+<<<<<<< HEAD
         previous_ids = set(self.instance.students.values_list("pk", flat=True)) if self.instance else set()
         if any(not student.is_active and student.pk not in previous_ids for student in students):
             raise serializers.ValidationError({"students": "Inactive students cannot be newly assigned."})
@@ -106,10 +138,28 @@ class ClassSessionSerializer(serializers.ModelSerializer):
         if not value("course").is_active and (not self.instance or value("course").pk != self.instance.course_id
                                               or self.instance.status != ClassSession.Status.SCHEDULED):
             raise serializers.ValidationError({"course": "Choose an active course."})
+=======
+        if any(not student.is_active for student in students):
+            raise serializers.ValidationError({"students": "Inactive students cannot be assigned."})
+        presenter, assistant = value("presenter"), value("assistant")
+        if not presenter.is_active or presenter.role not in ("presenter", "admin"):
+            raise serializers.ValidationError({"presenter": "Choose an active presenter or admin."})
+        if assistant and (not assistant.is_active or assistant.role not in ("assistant", "admin")):
+            raise serializers.ValidationError({"assistant": "Choose an active assistant or admin."})
+        if assistant == presenter:
+            raise serializers.ValidationError({"assistant": "Presenter and assistant must be different people."})
+        if not value("course").is_active:
+            raise serializers.ValidationError({"course": "Choose an active course."})
+        overlaps = ClassSession.objects.filter(date=value("date"), start_time__lt=value("end_time"), end_time__gt=value("start_time")).exclude(pk=getattr(self.instance, "pk", None))
+        staff = [user for user in (presenter, assistant) if user]
+        if overlaps.filter(Q(room__iexact=value("room")) | Q(presenter__in=staff) | Q(assistant__in=staff)).exists():
+            raise serializers.ValidationError("The room or staff are already assigned at this time.")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         if self.instance:
             recorded = set(self.instance.attendance.values_list("student_id", flat=True)) | set(self.instance.progress_notes.values_list("student_id", flat=True))
             if not recorded.issubset({student.pk for student in students}):
                 raise serializers.ValidationError({"students": "Students with attendance or note history cannot be removed."})
+<<<<<<< HEAD
             if recorded:
                 for name in ("course", "date", "start_time", "end_time", "room"):
                     if name in attrs and attrs[name] != getattr(self.instance, name):
@@ -150,16 +200,29 @@ class ClassSessionSerializer(serializers.ModelSerializer):
             session.save(update_fields=["status_changed_at", "status_changed_by"])
             SessionStatusEvent.objects.create(session=session, previous_status=previous_status,
                 status=session.status, reason=session.status_reason, changed_by=session.status_changed_by)
+=======
+            if ("course" in attrs and attrs["course"] != self.instance.course) and recorded:
+                raise serializers.ValidationError({"course": "A session with history cannot change course."})
+        return attrs
+
+    def register_students(self, session):
+        for student in session.students.all():
+            Registration.objects.update_or_create(student=student, course=session.course, defaults={"is_active": True})
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
     @transaction.atomic
     def create(self, validated_data):
         session = super().create(validated_data)
+<<<<<<< HEAD
         self.record_status(session, "")
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.register_students(session)
         return session
 
     @transaction.atomic
     def update(self, instance, validated_data):
+<<<<<<< HEAD
         previous_status = instance.status
         previous_course_id = instance.course_id
         previous_ids = set(instance.students.values_list("pk", flat=True))
@@ -172,6 +235,10 @@ class ClassSessionSerializer(serializers.ModelSerializer):
             self.register_students(instance)
         else:
             self.register_students(instance, only_ids=newly_assigned)
+=======
+        instance = super().update(instance, validated_data)
+        self.register_students(instance)
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         return instance
 
 
@@ -192,8 +259,11 @@ class AttendanceSerializer(serializers.ModelSerializer):
         student = attrs.get("student", getattr(self.instance, "student", None))
         if not assigned_sessions(self.context["request"].user).filter(pk=session.pk).exists():
             raise PermissionDenied("You are not assigned to this class.")
+<<<<<<< HEAD
         if session.status != ClassSession.Status.SCHEDULED:
             raise serializers.ValidationError({"session": "Attendance is read-only for cancelled or archived sessions. Restore the session to make corrections."})
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         if not session.students.filter(pk=student.pk).exists():
             raise serializers.ValidationError({"student": "This student is not on the session roster."})
         if self.instance and (session.pk != self.instance.session_id or student.pk != self.instance.student_id):
@@ -209,22 +279,33 @@ class ProgressNoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProgressNote
+<<<<<<< HEAD
         fields = ("id", "student", "student_name", "session", "text", "date", "author", "author_name", "is_deleted", "deleted_at", "deleted_by", "created_at", "updated_at")
         read_only_fields = ("id", "author", "is_deleted", "deleted_at", "deleted_by", "created_at", "updated_at")
+=======
+        fields = ("id", "student", "student_name", "session", "text", "date", "author", "author_name", "created_at", "updated_at")
+        read_only_fields = ("id", "author", "created_at", "updated_at")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
     def validate(self, attrs):
         user = self.context["request"].user
         student = attrs.get("student", getattr(self.instance, "student", None))
         session = attrs.get("session", getattr(self.instance, "session", None))
+<<<<<<< HEAD
         if self.instance and (student.pk != self.instance.student_id or getattr(session, "pk", None) != self.instance.session_id):
             raise serializers.ValidationError("The student/session of a recorded note cannot change.")
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         if not visible_students(user).filter(pk=student.pk).exists():
             raise PermissionDenied("You cannot access this student.")
         if session:
             if not assigned_sessions(user).filter(pk=session.pk).exists():
                 raise PermissionDenied("You are not assigned to this class.")
+<<<<<<< HEAD
             if session.status != ClassSession.Status.SCHEDULED:
                 raise serializers.ValidationError({"session": "Notes are read-only for cancelled or archived sessions."})
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             if not session.students.filter(pk=student.pk).exists():
                 raise serializers.ValidationError({"student": "This student is not on the session roster."})
         if attrs.get("date", getattr(self.instance, "date", timezone.localdate())) > timezone.localdate():

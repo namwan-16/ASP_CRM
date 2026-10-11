@@ -4,12 +4,18 @@ import api from "../api/client";
 import { errorMessage, sessionRecord } from "../api/crm";
 import useRecords from "../hooks/useRecords";
 import { useAuth } from "../context/AuthContext";
+<<<<<<< HEAD
 import { Link } from "react-router-dom";
 import { download } from "../api/crm";
 import { printClassList } from "../api/print";
 import RequestState from "../components/RequestState";
 import Notification from "../components/Notification";
 const CLASSES_PER_PAGE = 5;
+=======
+import RequestState from "../components/RequestState";
+
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 function localDateString(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -31,6 +37,11 @@ function getStatus(session) {
   if (date === today) return "Today";
   return "Upcoming";
 }
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 function formatDate(value) {
   if (!value) return "—";
   const [year, month, day] = value.split("-").map(Number);
@@ -327,6 +338,7 @@ function findScheduleConflict(form, sessions, editingSessionId) {
     .find(Boolean);
 }
 
+<<<<<<< HEAD
 function ClassForm({
   classItem,
   initialDate = "",
@@ -337,6 +349,9 @@ function ClassForm({
   students,
   sessions,
 }) {
+=======
+function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   const [form, setForm] = useState(
     classItem
       ? {
@@ -347,7 +362,11 @@ function ClassForm({
           room: classItem.room,
           capacity: String(classItem.capacity),
           presenter: String(classItem.presenterId),
+<<<<<<< HEAD
           assistant: String(classItem.assistantId || ""),
+=======
+          assistant: String(classItem.assistantId),
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
           studentIds: classItem.studentIds,
         }
       : {
@@ -364,6 +383,10 @@ function ClassForm({
   );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+<<<<<<< HEAD
+=======
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   function updateField(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
@@ -376,6 +399,10 @@ function ClassForm({
         : [...current.studentIds, studentId],
     }));
   }
+<<<<<<< HEAD
+=======
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   async function handleSubmit(event) {
     event.preventDefault();
     if (
@@ -404,6 +431,7 @@ function ClassForm({
     if (conflict) {
       const reasons = conflict.conflictReasons;
 
+<<<<<<< HEAD
       setError(
         `This session overlaps with ${conflict.course} (${formatTime(conflict.startTime)}–${formatTime(conflict.endTime)}): ${reasons.join(", ")}. Change the schedule, presenter, room or roster before saving.`,
       );
@@ -418,6 +446,13 @@ function ClassForm({
     } finally {
       setSaving(false);
     }
+=======
+    setError("");
+    setSaving(true);
+    try { await onSave({ ...form, capacity }); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+    finally { setSaving(false); }
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   }
   return (
     <div
@@ -453,13 +488,18 @@ function ClassForm({
         </div>
         <form className="classes-form" onSubmit={handleSubmit}>
           <label>
+<<<<<<< HEAD
             Subject
+=======
+            Course or subject
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             <select
               name="course"
               value={form.course}
               onChange={updateField}
               required
             >
+<<<<<<< HEAD
               <option value="">Select a subject</option>
               {courses
                 .filter((course) => course.is_active)
@@ -468,6 +508,10 @@ function ClassForm({
                     {course.name}
                   </option>
                 ))}
+=======
+              <option value="">Select a course</option>
+              {courses.filter((course) => course.is_active).map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             </select>
           </label>
           <div className="classes-form__row">
@@ -520,6 +564,7 @@ function ClassForm({
                 onChange={updateField}
               >
                 <option value="">Select a presenter</option>
+<<<<<<< HEAD
                 {staff
                   .filter(
                     (person) =>
@@ -533,16 +578,23 @@ function ClassForm({
                         person.email}
                     </option>
                   ))}
+=======
+                {staff.filter((person) => person.is_active && ["presenter", "admin"].includes(person.role)).map((person) => (
+                  <option key={person.id} value={person.id}>{`${person.first_name} ${person.last_name}`.trim() || person.username}</option>
+                ))}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
               </select>
             </label>
             <label>
               Assistant (optional)
               <select
                 name="assistant"
+                aria-label="Assistant"
                 value={form.assistant}
                 onChange={updateField}
               >
                 <option value="">No assistant</option>
+<<<<<<< HEAD
                 {staff
                   .filter(
                     (person) =>
@@ -556,6 +608,11 @@ function ClassForm({
                         person.email}
                     </option>
                   ))}
+=======
+                {staff.filter((person) => person.is_active && ["assistant", "admin"].includes(person.role)).map((person) => (
+                  <option key={person.id} value={person.id}>{`${person.first_name} ${person.last_name}`.trim() || person.username}</option>
+                ))}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
               </select>
             </label>
           </div>
@@ -576,6 +633,7 @@ function ClassForm({
               subject.
             </p>
             <div className="classes-student-picker__list">
+<<<<<<< HEAD
               {students
                 .filter(
                   (student) =>
@@ -597,12 +655,40 @@ function ClassForm({
                     </span>
                   </label>
                 ))}
+=======
+              {students.map((student) => (
+                <label className="classes-student-option" key={student.id}>
+                  <input
+                    type="checkbox"
+                    checked={form.studentIds.includes(student.id)}
+                    onChange={() => toggleStudent(student.id)}
+                  />
+                  <span>
+                    {student.name}
+                    <small>
+                      {student.id} · {student.year}
+                    </small>
+                  </span>
+                </label>
+              ))}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             </div>
             <span className="classes-student-picker__count">
               {form.studentIds.length} selected · Capacity {form.capacity || 0}
             </span>
           </fieldset>
+<<<<<<< HEAD
           <Notification error={error} onDismiss={() => setError("")} />
+=======
+
+          {error && (
+            <p className="classes-form__error" role="alert">
+              {error}
+            </p>
+          )}
+
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
           <div className="classes-form__actions">
             <button
               className="classes-secondary-button"
@@ -611,6 +697,7 @@ function ClassForm({
             >
               Cancel
             </button>
+<<<<<<< HEAD
             <button
               className="classes-primary-button"
               type="submit"
@@ -621,6 +708,10 @@ function ClassForm({
                 : classItem
                   ? "Save changes"
                   : "Create class"}
+=======
+            <button className="classes-primary-button" type="submit" disabled={saving}>
+              {saving ? "Saving..." : classItem ? "Save changes" : "Create class"}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
             </button>
           </div>
         </form>
@@ -628,6 +719,7 @@ function ClassForm({
     </div>
   );
 }
+<<<<<<< HEAD
 function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -658,6 +750,10 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
       setBusy(false);
     }
   }
+=======
+
+function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   const enrolledStudents = students.filter((student) =>
     classItem.studentIds.includes(student.id),
   );
@@ -861,6 +957,7 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
           >
             Close
           </button>
+<<<<<<< HEAD
           {onEdit && (
             <button
               className="classes-primary-button"
@@ -870,6 +967,16 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
               Edit class
             </button>
           )}
+=======
+          {onEdit && <button
+            className="classes-primary-button"
+            type="button"
+            onClick={onEdit}
+          >
+            Edit class
+          </button>}
+          {onDelete && <button className="classes-secondary-button" type="button" onClick={onDelete}>Delete class</button>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         </div>
       </section>
     </div>
@@ -880,6 +987,7 @@ export default function Classes() {
   const courseRecords = useRecords("/courses/");
   const staffRecords = useRecords("/auth/users/");
   const studentRecords = useRecords("/students/");
+<<<<<<< HEAD
   const classes = useMemo(
     () => (Array.isArray(records.data) ? records.data : []).map(sessionRecord),
     [records.data],
@@ -900,6 +1008,13 @@ export default function Classes() {
   const canManage = user?.can_manage;
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
+=======
+  const classes = useMemo(() => records.data.map(sessionRecord), [records.data]);
+  const students = useMemo(() => studentRecords.data.map((student) => ({ id: student.id, name: `${student.first_name} ${student.last_name}`, year: student.year_level })), [studentRecords.data]);
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+  const [actionError, setActionError] = useState("");
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   const [query, setQuery] = useState("");
   const [courseFilter, setCourseFilter] = useState("All subjects");
   const [presenterFilter, setPresenterFilter] = useState("All presenters");
@@ -967,6 +1082,7 @@ export default function Classes() {
           a.date.localeCompare(b.date) ||
           a.startTime.localeCompare(b.startTime),
       );
+<<<<<<< HEAD
   }, [
     classes,
     students,
@@ -1007,6 +1123,13 @@ export default function Classes() {
       assistant: form.assistant ? Number(form.assistant) : null,
       students: form.studentIds,
     };
+=======
+  }, [classes, students, query, courseFilter, presenterFilter, dateFilter, statusFilter]);
+
+  async function saveClass(form) {
+    const data = { course: Number(form.course), date: form.date, start_time: form.startTime, end_time: form.endTime,
+      room: form.room, capacity: form.capacity, presenter: Number(form.presenter), assistant: form.assistant ? Number(form.assistant) : null, students: form.studentIds };
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     if (editingClass) await api.patch(`/sessions/${editingClass.id}/`, data);
     else await api.post("/sessions/", data);
     records.refresh();
@@ -1045,6 +1168,7 @@ export default function Classes() {
   }
   return (
     <main className="classes-page">
+<<<<<<< HEAD
       <RequestState
         loading={
           records.loading ||
@@ -1066,6 +1190,10 @@ export default function Classes() {
         }}
       />
       <Notification error={actionError} message={actionMessage} onDismiss={() => { setActionError(""); setActionMessage(""); }} />
+=======
+      <RequestState loading={records.loading || courseRecords.loading || staffRecords.loading || studentRecords.loading} error={records.error || courseRecords.error || staffRecords.error || studentRecords.error} onRetry={() => { records.refresh(); courseRecords.refresh(); staffRecords.refresh(); studentRecords.refresh(); }} />
+      {actionError && <p className="crm-message crm-message--error" role="alert">{actionError}</p>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
       <section
         className="classes-toolbar"
         aria-label="Class management actions and filters"
@@ -1131,6 +1259,7 @@ export default function Classes() {
             <option>Archived</option>
           </select>
         </label>
+<<<<<<< HEAD
         {canManage && (
           <button
             className="classes-primary-button classes-create-button"
@@ -1140,6 +1269,19 @@ export default function Classes() {
             <span aria-hidden="true">+</span> Create class
           </button>
         )}
+=======
+
+        {canManage && <button
+          className="classes-primary-button classes-create-button"
+          type="button"
+          onClick={() => {
+            setEditingClass(null);
+            setDialogOpen(true);
+          }}
+        >
+          <span aria-hidden="true">+</span> Create class
+        </button>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
       </section>
       <section className="classes-panel" aria-labelledby="classes-list-title">
         <div className="classes-panel__heading">
@@ -1147,6 +1289,7 @@ export default function Classes() {
             <h2 id="classes-list-title">Classes and sessions</h2>
             <p>Manage schedules, staff assignments and student enrolments.</p>
           </div>
+<<<<<<< HEAD
           <div
             className="classes-display-toggle"
             role="group"
@@ -1169,6 +1312,8 @@ export default function Classes() {
               Calendar
             </button>
           </div>
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         </div>
         <div className="classes-results" aria-live="polite">
           <span>
@@ -1238,6 +1383,7 @@ export default function Classes() {
                           <span className="classes-course-name">
                             {item.course}
                           </span>
+<<<<<<< HEAD
                           <span className="classes-id">{item.id}</span>
                         </td>
                         <td>
@@ -1327,6 +1473,47 @@ export default function Classes() {
               )}
             </nav>
           </>
+=======
+                        )}
+                      </td>
+                      <td>
+                        <span className="classes-enrolment-count">
+                          {item.studentIds.length}
+                        </span>
+                        <span className="classes-cell-subtext">
+                          of {item.capacity} capacity
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`classes-status classes-status--${status.toLowerCase()}`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+                      <td className="classes-row-actions">
+                        <button
+                          className="classes-view-button"
+                          type="button"
+                          onClick={() => setSelectedClass(item)}
+                        >
+                          View
+                        </button>
+                        {canManage && <button
+                          className="classes-edit-button"
+                          type="button"
+                          onClick={() => openEdit(item)}
+                        >
+                          Edit
+                        </button>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         ) : (
           <div className="classes-empty-state">
             <h3>No classes found</h3>
@@ -1353,10 +1540,16 @@ export default function Classes() {
             setInitialClassDate("");
           }}
           onSave={saveClass}
+<<<<<<< HEAD
           courses={courseOptions}
           staff={Array.isArray(staffRecords.data) ? staffRecords.data : []}
           students={students}
           sessions={classes}
+=======
+          courses={courseRecords.data}
+          staff={staffRecords.data}
+          students={students}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         />
       )}
       {selectedClass && (
@@ -1364,6 +1557,7 @@ export default function Classes() {
           classItem={selectedClass}
           onClose={() => setSelectedClass(null)}
           students={students}
+<<<<<<< HEAD
           onEdit={
             canManage && selectedClass.status === "scheduled"
               ? () => openEdit(selectedClass)
@@ -1382,6 +1576,14 @@ export default function Classes() {
                 }
               : null
           }
+=======
+          onEdit={canManage ? () => openEdit(selectedClass) : null}
+          onDelete={canManage ? async () => {
+            if (!window.confirm("Delete this class session? Sessions with recorded history cannot be deleted.")) return;
+            try { await api.delete(`/sessions/${selectedClass.id}/`); setSelectedClass(null); records.refresh(); }
+            catch (requestError) { setActionError(errorMessage(requestError)); }
+          } : null}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         />
       )}
     </main>

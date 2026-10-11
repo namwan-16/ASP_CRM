@@ -1,18 +1,28 @@
 import io
+<<<<<<< HEAD
 import re
 
 from django.db.models import Q
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 from django.db import transaction
 from django.http import HttpResponse
 from openpyxl import Workbook
 from rest_framework import serializers, viewsets
+<<<<<<< HEAD
 from rest_framework.decorators import action, api_view
+=======
+from rest_framework.decorators import action
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 from rest_framework.response import Response
 
 from accounts.permissions import AdminOnly, AdminWrite, is_admin, visible_students
 from config.query import filter_id
+<<<<<<< HEAD
 from config.lifecycle import HistoryConflict, student_has_history
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 from .imports import HEADERS, import_students
 
 from .models import Guardian, Student, StudentGuardian
@@ -33,12 +43,17 @@ class StudentViewSet(viewsets.ModelViewSet):
     ordering_fields = ["first_name", "last_name", "created_at"]
 
     def get_queryset(self):
+<<<<<<< HEAD
         qs = visible_students(self.request.user).select_related("subject_course").prefetch_related("guardian_links__guardian").order_by("last_name", "first_name", "id")
+=======
+        qs = visible_students(self.request.user).prefetch_related("guardian_links__guardian").order_by("last_name", "first_name")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         if "is_active" in self.request.query_params:
             active = serializers.BooleanField().run_validation(self.request.query_params["is_active"])
             qs = qs.filter(is_active=active)
         return qs
 
+<<<<<<< HEAD
     @transaction.atomic
     def perform_destroy(self, instance):
         instance = Student.objects.select_for_update().get(pk=instance.pk)
@@ -60,6 +75,8 @@ class StudentViewSet(viewsets.ModelViewSet):
         student.save(update_fields=["is_active", "updated_at"])
         return Response(self.get_serializer(student).data)
 
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     @action(detail=True, methods=["get"], url_path="emergency-contacts")
     def emergency_contacts(self, request, pk=None):
         student = self.get_object()
@@ -80,9 +97,13 @@ class StudentViewSet(viewsets.ModelViewSet):
         workbook = Workbook()
         workbook.active.title = "Students"
         workbook.active.append(HEADERS)
+<<<<<<< HEAD
         from classes.models import Course
         subject_name = Course.objects.filter(is_active=True).values_list("name", flat=True).first() or ""
         workbook.active.append(["", "Example", "Student", "2013-01-15", "Example School", "Year 7", subject_name,
+=======
+        workbook.active.append(["", "Example", "Student", "2013-01-15", "Example School", "Year 7", "Mathematics",
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
                                 "", "", "No", "Yes", "", "", "Example", "Guardian", "0400000001", "guardian@example.com", "Mother", "Yes", "Yes"])
         for column in ("I", "P"):
             workbook.active[f"{column}2"].number_format = "@"
@@ -103,6 +124,7 @@ class GuardianViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset().prefetch_related("student_links__student")
         return qs if is_admin(self.request.user) else qs.filter(student_links__student__in=visible_students(self.request.user)).distinct()
+<<<<<<< HEAD
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -110,6 +132,8 @@ class GuardianViewSet(viewsets.ModelViewSet):
         if instance.student_links.exists():
             raise HistoryConflict("This guardian is linked to a student. Remove the relevant student–guardian links before deleting an unused guardian.")
         instance.delete()
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 class StudentGuardianViewSet(viewsets.ModelViewSet):
@@ -137,6 +161,7 @@ class StudentGuardianViewSet(viewsets.ModelViewSet):
         student_id = serializers.IntegerField(min_value=1).run_validation(request.data.get("student", link.student_id))
         list(Student.objects.select_for_update().filter(pk__in=[student_id, link.student_id]).order_by("pk"))
         return super().update(request, *args, **kwargs)
+<<<<<<< HEAD
 
 
 @api_view(["GET"])
@@ -158,3 +183,5 @@ def emergency_lookup(request):
     paginator = CrmPagination()
     page = paginator.paginate_queryset(qs, request)
     return paginator.get_paginated_response(EmergencyStudentSerializer(page, many=True).data)
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

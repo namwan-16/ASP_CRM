@@ -42,7 +42,11 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
+<<<<<<< HEAD
       await register({ ...form, email: form.email.trim().toLowerCase() });
+=======
+      await register(form);
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
       window.alert("Account created. An ASP administrator must approve your account before you can sign in.");
       navigate("/login", { replace: true });
     } catch (requestError) {

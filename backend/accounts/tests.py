@@ -22,9 +22,15 @@ class AuthenticationApiTests(APITestCase):
             get_user_model().objects.get(email="assistant@example.com").role,
             "assistant",
         )
+<<<<<<< HEAD
         user = get_user_model().objects.get(email="assistant@example.com")
         self.assertFalse(user.is_active)
         blocked = self.client.post(reverse("login"), {"email": "assistant@example.com", "password": "SafeTestPassword483!"})
+=======
+        user = get_user_model().objects.get(username="testassistant")
+        self.assertFalse(user.is_active)
+        blocked = self.client.post(reverse("login"), {"username": "testassistant", "password": "SafeTestPassword483!"})
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.assertEqual(blocked.status_code, status.HTTP_401_UNAUTHORIZED)
         user.is_active = True
         user.save()
@@ -50,8 +56,13 @@ class AuthenticationApiTests(APITestCase):
 
     def test_staff_role_changes_require_admin(self):
         User = get_user_model()
+<<<<<<< HEAD
         assistant = User.objects.create_user("assistant@example.test", password="SafeTestPassword483!")
         admin = User.objects.create_user("admin@example.test", role="admin", password="SafeTestPassword483!")
+=======
+        assistant = User.objects.create_user("assistant", password="SafeTestPassword483!")
+        admin = User.objects.create_user("admin", role="admin", password="SafeTestPassword483!")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.client.force_authenticate(assistant)
         response = self.client.patch(f"/api/auth/users/{assistant.pk}/", {"role": "admin"})
         self.assertEqual(response.status_code, 403)
@@ -63,8 +74,13 @@ class AuthenticationApiTests(APITestCase):
 
     def test_admin_cannot_deactivate_self_or_modify_superuser(self):
         User = get_user_model()
+<<<<<<< HEAD
         admin = User.objects.create_user("admin@example.test", role="admin")
         root = User.objects.create_superuser("root@example.test", password="SafeTestPassword483!")
+=======
+        admin = User.objects.create_user("admin", role="admin")
+        root = User.objects.create_superuser("root", password="SafeTestPassword483!")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.client.force_authenticate(admin)
         self.assertEqual(self.client.patch(f"/api/auth/users/{admin.pk}/", {"is_active": False}).status_code, 400)
         self.assertEqual(self.client.patch(f"/api/auth/users/{root.pk}/", {"role": "assistant"}).status_code, 400)
@@ -72,12 +88,18 @@ class AuthenticationApiTests(APITestCase):
     def test_logout_cannot_blacklist_another_users_refresh_token(self):
         from rest_framework_simplejwt.tokens import RefreshToken
         User = get_user_model()
+<<<<<<< HEAD
         first = User.objects.create_user("first@example.test")
         second = User.objects.create_user("second@example.test")
+=======
+        first = User.objects.create_user("first")
+        second = User.objects.create_user("second")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.client.force_authenticate(first)
         response = self.client.post(reverse("logout"), {"refresh": str(RefreshToken.for_user(second))})
         self.assertEqual(response.status_code, 400)
 
+<<<<<<< HEAD
 
 
 class ProfileApiTests(APITestCase):
@@ -115,3 +137,5 @@ class ProfileApiTests(APITestCase):
         self.client.credentials()
         self.assertEqual(self.client.post(reverse("token-refresh"), {"refresh": refresh}).status_code, 401)
         self.assertEqual(self.client.post(reverse("login"), {"email": self.user.email, "password": "NewSafePass542!"}).status_code, 200)
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

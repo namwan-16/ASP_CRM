@@ -1,6 +1,16 @@
+<<<<<<< HEAD
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
 import { useAuth } from "../context/AuthContext";
+=======
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import "./Dashboard.css";
+import api from "../api/client";
+import { errorMessage } from "../api/crm";
+import { useAuth } from "../context/AuthContext";
+import RequestState from "../components/RequestState";
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 const adminActions = [
   {
@@ -166,11 +176,35 @@ function getFirstName(user) {
   return String(value).trim().split(/\s+/)[0] || "there";
 }
 
+<<<<<<< HEAD
 export default function Dashboard() {
   const { user } = useAuth();
   const isAdministrator = Boolean(user?.can_manage);
   const actions = isAdministrator ? adminActions : presenterActions;
   const roleLabel = isAdministrator ? "Administrator" : "Presenter";
+=======
+function getRoleLabel(user) {
+  const role = String(user?.role || user?.user_type || "").toLowerCase();
+
+  if (role.includes("admin")) return "Administrator";
+  if (role.includes("present")) return "Presenter";
+
+  return "ASP team member";
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    api.get("/dashboard/", { signal: controller.signal }).then((response) => setStats(response.data)).catch((requestError) => {
+      if (!controller.signal.aborted) setError(errorMessage(requestError));
+    });
+    return () => controller.abort();
+  }, []);
+  const roleLabel = getRoleLabel(user);
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
   return (
     <main className="dashboard-page">
@@ -182,7 +216,19 @@ export default function Dashboard() {
           </p>
         </div>
 
+<<<<<<< HEAD
       </header>
+=======
+        <span className="dashboard-page__role">{roleLabel}</span>
+      </div>
+      <RequestState loading={!stats && !error} error={error} />
+      {stats && <section className="crm-stats" aria-label="CRM summary">
+        <div><strong>{stats.students}</strong><span>Students</span></div>
+        <div><strong>{stats.guardians}</strong><span>Guardians</span></div>
+        <div><strong>{stats.sessions_today}</strong><span>Sessions today</span></div>
+        <div><strong>{stats.progress_notes}</strong><span>Progress notes</span></div>
+      </section>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
       <section
         className="dashboard-welcome"

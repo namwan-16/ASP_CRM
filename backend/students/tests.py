@@ -15,8 +15,13 @@ from .models import Guardian, Student, StudentGuardian
 
 class StudentApiTests(APITestCase):
     def setUp(self):
+<<<<<<< HEAD
         self.admin = User.objects.create_user("admin@example.test", role="admin")
         self.assistant = User.objects.create_user("assistant@example.test")
+=======
+        self.admin = User.objects.create_user("admin", role="admin")
+        self.assistant = User.objects.create_user("assistant")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.client.force_authenticate(self.admin)
 
     def student(self, **values):
@@ -87,7 +92,11 @@ class StudentApiTests(APITestCase):
 class ImportApiTests(APITestCase):
     def setUp(self):
         cache.clear()
+<<<<<<< HEAD
         self.admin = User.objects.create_user("admin@example.test", role="admin")
+=======
+        self.admin = User.objects.create_user("admin", role="admin")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.client.force_authenticate(self.admin)
         self.row = {"first_name": "Ava", "last_name": "Example", "date_of_birth": "2013-01-15", "school": "Old School",
                     "guardian_first_name": "Sarah", "guardian_last_name": "Example", "guardian_phone": "0400 000 001", "relationship": "Mother"}
@@ -184,13 +193,18 @@ class ImportApiTests(APITestCase):
         response = self.client.get("/api/students/import-template/")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b"PK"))
+<<<<<<< HEAD
         self.client.force_authenticate(User.objects.create_user("assistant@example.test"))
+=======
+        self.client.force_authenticate(User.objects.create_user("assistant"))
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         self.assertEqual(self.upload([self.row]).status_code, 403)
 
     def test_import_requests_are_throttled(self):
         for _ in range(10):
             self.assertEqual(self.upload([self.row], dry_run=True).status_code, 200)
         self.assertEqual(self.upload([self.row], dry_run=True).status_code, 429)
+<<<<<<< HEAD
 
 
 class EmergencyLookupApiTests(APITestCase):
@@ -221,3 +235,5 @@ class EmergencyLookupApiTests(APITestCase):
         self.assertEqual(self.client.get(f"/api/students/{self.student.pk}/emergency-contacts/").status_code, 404)
         self.client.force_authenticate(user=None)
         self.assertEqual(self.client.get("/api/emergency-lookup/?search=Ava").status_code, 401)
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

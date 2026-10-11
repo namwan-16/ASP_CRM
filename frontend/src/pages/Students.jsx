@@ -5,9 +5,13 @@ import { errorMessage, studentRecord } from "../api/crm";
 import useRecords from "../hooks/useRecords";
 import { useAuth } from "../context/AuthContext";
 import RequestState from "../components/RequestState";
+<<<<<<< HEAD
 import Pagination from "../components/Pagination";
 import Notification from "../components/Notification";
 import usePagination from "../hooks/usePagination";
+=======
+
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 function CloseIcon() {
   return (
@@ -26,6 +30,7 @@ function SearchIcon() {
   );
 }
 
+<<<<<<< HEAD
 function displayValue(value) {
   return value === null || value === undefined || value === ""
     ? "Not recorded"
@@ -37,6 +42,9 @@ function permissionChoice(value) {
 }
 
 function StudentDetailsDialog({ student, onClose, onEdit, onDelete, onToggleActive }) {
+=======
+function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   if (!student) return null;
 
   return (
@@ -73,6 +81,10 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete, onToggleActi
         <h3 className="students-details__section-title">Student information</h3>
 
         <dl className="students-details">
+          <div><dt>Date of birth</dt><dd>{student.date_of_birth}</dd></div>
+          <div><dt>School</dt><dd>{student.school || "Not recorded"}</dd></div>
+          <div><dt>Medical information</dt><dd>{student.medical_information || "Not recorded"}</dd></div>
+          <div><dt>Special circumstances</dt><dd>{student.special_circumstances || "Not recorded"}</dd></div>
           <div>
             <dt>Student ID</dt>
             <dd>{displayValue(student.studentId ?? student.id)}</dd>
@@ -151,6 +163,7 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete, onToggleActi
 
         {student.can_delete === false && <p className="crm-history-hint">This student has protected history. Deactivate to stop current work and reactivate when they return.</p>}
         <div className="students-form__actions">
+<<<<<<< HEAD
           {onToggleActive && <button className="students-primary-button" type="button" onClick={onToggleActive}>{student.is_active ? "Deactivate" : "Reactivate"}</button>}
           {onDelete && (
             <button
@@ -163,6 +176,10 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete, onToggleActi
             </button>
           )}
 
+=======
+          {onEdit && <button className="students-secondary-button" type="button" onClick={onEdit}>Edit</button>}
+          {onDelete && <button className="students-secondary-button" type="button" onClick={onDelete}>Delete</button>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
           <button
             className="students-secondary-button"
             type="button"
@@ -176,6 +193,7 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete, onToggleActi
   );
 }
 
+<<<<<<< HEAD
 function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
   const [formData, setFormData] = useState(() => ({
     firstName: student?.firstName ?? "",
@@ -196,6 +214,25 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
     status: student?.status ?? "Active",
   }));
 
+=======
+function AddStudentDialog({ onClose, onAdd, guardians, student }) {
+  const [formData, setFormData] = useState({
+    firstName: student?.firstName || "",
+    lastName: student?.lastName || "",
+    level: student?.level || "",
+    subject: student?.subject || "",
+    guardian: student?.guardianId || "",
+    permissionToTravelAlone: student?.permissionToTravelAlone || "No",
+    date_of_birth: student?.date_of_birth || "",
+    school: student?.school || "",
+    email: student?.email || "",
+    phone: student?.phone || "",
+    medical_information: student?.medical_information || "",
+    special_circumstances: student?.special_circumstances || "",
+    relationship: student?.relationship || "Guardian",
+    status: student?.status || "Active",
+  });
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -208,6 +245,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
     event.preventDefault();
     setError("");
     setSaving(true);
+<<<<<<< HEAD
 
     try {
       await onSave(formData);
@@ -216,6 +254,11 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
     } finally {
       setSaving(false);
     }
+=======
+    try { await onAdd(formData); }
+    catch (requestError) { setError(errorMessage(requestError)); }
+    finally { setSaving(false); }
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   }
 
   return (
@@ -234,9 +277,13 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
         <div className="students-dialog__heading">
           <div>
             <p className="students-page__eyebrow">Student records</p>
+<<<<<<< HEAD
             <h2 id="student-form-title">
               {student ? "Edit student" : "Add student"}
             </h2>
+=======
+            <h2 id="add-student-title">{student ? "Edit student" : "Add student"}</h2>
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
           </div>
 
           <button
@@ -264,6 +311,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
                 />
               </label>
 
+<<<<<<< HEAD
               <label>
                 Last name
                 <input
@@ -293,6 +341,64 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
                   onChange={handleChange}
                 />
               </label>
+=======
+          <div className="students-form__row">
+            <label>
+              Level
+              <select
+                name="level"
+                aria-label="Level"
+                value={formData.level}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select a level</option>
+                <option value="Year 7">Year 7</option>
+                <option value="Year 8">Year 8</option>
+                <option value="Year 9">Year 9</option>
+                <option value="Year 10">Year 10</option>
+                <option value="Year 11">Year 11</option>
+                <option value="Year 12">Year 12</option>
+              </select>
+            </label>
+
+            <label>
+              Subject
+              <select
+                name="subject"
+                aria-label="Subject"
+                value={formData.subject}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select a subject</option>
+                <option value="Mathematics">Mathematics</option>
+                <option value="Physical Sciences">Physical Sciences</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="students-form__row">
+            <label>Date of birth<input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} required /></label>
+            <label>School<input name="school" value={formData.school} onChange={handleChange} /></label>
+          </div>
+          <div className="students-form__row">
+            <label>Email<input type="email" name="email" value={formData.email} onChange={handleChange} /></label>
+            <label>Phone<input type="tel" name="phone" value={formData.phone} onChange={handleChange} /></label>
+          </div>
+          <label>
+            Primary guardian
+            <select
+              name="guardian"
+              value={formData.guardian}
+              onChange={handleChange}
+            >
+              <option value="">No primary guardian selected</option>
+              {guardians.map((guardian) => <option key={guardian.id} value={guardian.id}>{guardian.first_name} {guardian.last_name} ({guardian.phone})</option>)}
+            </select>
+          </label>
+          <label>Relationship<input name="relationship" value={formData.relationship} onChange={handleChange} /></label>
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
               <label>
                 Year level
@@ -318,6 +424,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
                 </select>
               </label>
 
+<<<<<<< HEAD
               <label>
                 Subject
                 <select
@@ -440,6 +547,12 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
           </section>
 
           <Notification error={error} onDismiss={() => setError("")} />
+=======
+          <label>Medical information<textarea name="medical_information" value={formData.medical_information} onChange={handleChange} /></label>
+          <label>Special circumstances<textarea name="special_circumstances" value={formData.special_circumstances} onChange={handleChange} /></label>
+          <label>Status<select name="status" value={formData.status} onChange={handleChange}><option>Active</option><option>Inactive</option></select></label>
+          {error && <p className="crm-message crm-message--error" role="alert">{error}</p>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
           <div className="students-form__actions">
             <button
@@ -450,12 +563,16 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
             >
               Cancel
             </button>
+<<<<<<< HEAD
 
             <button
               className="students-primary-button"
               type="submit"
               disabled={saving}
             >
+=======
+            <button className="students-primary-button" type="submit" disabled={saving}>
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
               {saving ? "Saving..." : student ? "Save changes" : "Add student"}
             </button>
           </div>
@@ -468,6 +585,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
 export default function Students() {
   const records = useRecords("/students/");
   const guardianRecords = useRecords("/guardians/");
+<<<<<<< HEAD
   const subjectRecords = useRecords("/courses/");
   const { user } = useAuth();
 
@@ -482,6 +600,13 @@ export default function Students() {
 
   const canManage = Boolean(user?.can_manage);
 
+=======
+  const students = useMemo(() => records.data.map(studentRecord), [records.data]);
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [actionError, setActionError] = useState("");
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All levels");
   const [roomFilter, setRoomFilter] = useState("All rooms");
@@ -528,6 +653,7 @@ export default function Students() {
     });
   }, [students, search, levelFilter, roomFilter, subjectFilter, statusFilter]);
 
+<<<<<<< HEAD
   const levelOptions = useMemo(
     () =>
       [
@@ -635,6 +761,28 @@ export default function Students() {
     setActionError("");
     setEditingStudent(null);
     setShowForm(true);
+=======
+  async function handleAddStudent(student) {
+    const data = { first_name: student.firstName, last_name: student.lastName, date_of_birth: student.date_of_birth,
+      school: student.school, year_level: student.level, subject: student.subject, email: student.email, phone: student.phone,
+      medical_information: student.medical_information, special_circumstances: student.special_circumstances,
+      permission_to_travel_alone: student.permissionToTravelAlone === "Yes", is_active: student.status === "Active",
+      guardian_id: student.guardian ? Number(student.guardian) : null, guardian_relationship: student.relationship };
+    if (editingStudent) await api.patch(`/students/${editingStudent.apiId}/`, data);
+    else await api.post("/students/", data);
+    records.refresh();
+    setShowAddDialog(false);
+    setEditingStudent(null);
+  }
+
+  async function deleteStudent() {
+    if (!window.confirm(`Delete ${selectedStudent.firstName} ${selectedStudent.lastName}?`)) return;
+    try {
+      await api.delete(`/students/${selectedStudent.apiId}/`);
+      setSelectedStudent(null);
+      records.refresh();
+    } catch (requestError) { setActionError(errorMessage(requestError)); }
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
   }
 
   return (
@@ -647,6 +795,7 @@ export default function Students() {
           </p>
         </div>
 
+<<<<<<< HEAD
         {canManage && (
           <button
             className="students-primary-button"
@@ -657,7 +806,19 @@ export default function Students() {
             Add student
           </button>
         )}
+=======
+        {canManage && <button
+          className="students-primary-button"
+          type="button"
+          onClick={() => { setEditingStudent(null); setShowAddDialog(true); }}
+        >
+          <span aria-hidden="true">+</span>
+          Add student
+        </button>}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
       </header>
+      <RequestState loading={records.loading || guardianRecords.loading} error={records.error || guardianRecords.error} onRetry={() => { records.refresh(); guardianRecords.refresh(); }} />
+      {actionError && <p className="crm-message crm-message--error" role="alert">{actionError}</p>}
 
       <RequestState
         loading={records.loading || guardianRecords.loading || subjectRecords.loading}
@@ -829,6 +990,7 @@ export default function Students() {
       <Pagination {...pagination} label="Student table pages" />
       </section>
 
+<<<<<<< HEAD
       {showForm && canManage && (
         <StudentFormDialog
           student={editingStudent}
@@ -839,6 +1001,14 @@ export default function Students() {
             setEditingStudent(null);
           }}
           onSave={handleSaveStudent}
+=======
+      {showAddDialog && (
+        <AddStudentDialog
+          onClose={() => setShowAddDialog(false)}
+          onAdd={handleAddStudent}
+          guardians={guardianRecords.data}
+          student={editingStudent}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         />
       )}
 
@@ -846,9 +1016,14 @@ export default function Students() {
         <StudentDetailsDialog
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
+<<<<<<< HEAD
           onEdit={canManage ? () => openEditForm(selectedStudent) : null}
           onDelete={canManage ? handleDeleteStudent : null}
           onToggleActive={canManage ? toggleStudentActive : null}
+=======
+          onEdit={canManage ? () => { setEditingStudent(selectedStudent); setSelectedStudent(null); setShowAddDialog(true); } : null}
+          onDelete={canManage ? deleteStudent : null}
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         />
       )}
     </main>

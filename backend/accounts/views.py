@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 from django.db import transaction
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
@@ -7,6 +10,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+<<<<<<< HEAD
 from .serializers import EmailTokenObtainPairSerializer, RegisterSerializer, UserSerializer, StaffSerializer, ProfileSerializer, PasswordChangeSerializer
 from .models import User
 from .permissions import AdminWrite, is_admin
@@ -16,6 +20,14 @@ from config.lifecycle import HistoryConflict, staff_is_used
 
 class LoginView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer
+=======
+from .serializers import RegisterSerializer, UserSerializer, StaffSerializer
+from .models import User
+from .permissions import AdminWrite, is_admin
+
+
+class LoginView(TokenObtainPairView):
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
     throttle_scope = "auth"
 
 
@@ -74,16 +86,25 @@ class LogoutView(APIView):
 
 class StaffViewSet(viewsets.ModelViewSet):
     permission_classes = [AdminWrite]
+<<<<<<< HEAD
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     search_fields = ["email", "first_name", "last_name"]
 
     def get_queryset(self):
         qs = User.objects.order_by("first_name", "last_name", "email")
+=======
+    http_method_names = ["get", "post", "patch", "head", "options"]
+    search_fields = ["username", "first_name", "last_name"]
+
+    def get_queryset(self):
+        qs = User.objects.order_by("first_name", "last_name", "username")
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
         return qs if is_admin(self.request.user) else qs.filter(is_active=True)
 
     def get_serializer_class(self):
         return StaffSerializer if is_admin(self.request.user) else UserSerializer
 
+<<<<<<< HEAD
     @transaction.atomic
     def update(self, request, *args, **kwargs):
         lock_staff()
@@ -106,3 +127,5 @@ class StaffViewSet(viewsets.ModelViewSet):
             raise HistoryConflict("This account has been used or has class/note history. Deactivate it instead.")
         instance.delete()
 
+=======
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b

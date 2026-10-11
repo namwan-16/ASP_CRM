@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from django import forms
 from django.contrib import admin
 from django.db import transaction
@@ -57,6 +58,17 @@ class ClassSessionAdmin(AdminManagedModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+=======
+from django.contrib import admin
+from .models import Attendance, ClassSession, Course, ProgressNote, Registration
+
+
+@admin.register(ClassSession)
+class ClassSessionAdmin(admin.ModelAdmin):
+    list_display = ("course", "date", "start_time", "room", "presenter", "assistant")
+    list_filter = ("date", "course")
+    filter_horizontal = ("students",)
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
 
 
 @admin.register(Attendance)
@@ -64,6 +76,7 @@ class AttendanceAdmin(admin.ModelAdmin):
     list_display = ("session", "student", "status", "marked_by", "updated_at")
     list_filter = ("status", "session__date")
 
+<<<<<<< HEAD
     def has_add_permission(self, request):
         return False
 
@@ -105,3 +118,14 @@ class RegistrationAdmin(AdminManagedModelAdmin):
 
 
 admin.site.register(Course, AdminManagedModelAdmin)
+=======
+
+@admin.register(ProgressNote)
+class ProgressNoteAdmin(admin.ModelAdmin):
+    list_display = ("student", "date", "author")
+    search_fields = ("student__first_name", "student__last_name", "text")
+
+
+admin.site.register(Course)
+admin.site.register(Registration)
+>>>>>>> dda7cbdf8a2dfeffcfee0a8fae30e97e0d7fed2b
