@@ -1,10 +1,15 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import "./Classes.css";
 import api from "../api/client";
-import { errorMessage, sessionRecord } from "../api/crm";
+import { download, errorMessage, sessionRecord } from "../api/crm";
+import { printClassList } from "../api/print";
 import useRecords from "../hooks/useRecords";
 import { useAuth } from "../context/AuthContext";
 import RequestState from "../components/RequestState";
+import Pagination from "../components/Pagination";
+import { PAGE_SIZE } from "../hooks/usePagination";
+import { notify } from "../utils/notifications";
 
 function localDateString(date) {
   const year = date.getFullYear();
@@ -20,11 +25,14 @@ function dateAfter(days) {
   return localDateString(date);
 }
 
-function getStatus(date) {
+function getStatus(session) {
+  if (session.status === "cancelled") return "Cancelled";
+  if (session.status === "archived") return "Archived";
+
   const today = localDateString(new Date());
 
-  if (date < today) return "Completed";
-  if (date === today) return "Today";
+  if (session.date < today) return "Completed";
+  if (session.date === today) return "Today";
   return "Upcoming";
 }
 
@@ -50,23 +58,349 @@ function formatTime(value) {
   return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")}${suffix}`;
 }
 
-function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
+function parseLocalDate(value) {
+  if (!value) return new Date();
+
+  const parts = value.split("-").map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2], 12);
+}
+
+function shiftDate(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function startOfWeek(date) {
+  const start = new Date(date);
+  const mondayOffset = (start.getDay() + 6) % 7;
+  start.setDate(start.getDate() - mondayOffset);
+  start.setHours(12, 0, 0, 0);
+  return start;
+}
+
+function getMonthCalendarDates(date) {
+  const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1, 12);
+  const firstCell = startOfWeek(firstOfMonth);
+
+  return Array.from({ length: 42 }, (_, index) => shiftDate(firstCell, index));
+}
+
+function formatCalendarHeading(date, view) {
+  if (view === "month") {
+    return new Intl.DateTimeFormat("en-AU", {
+      month: "long",
+      year: "numeric",
+    }).format(date);
+  }
+
+  const start = startOfWeek(date);
+  const end = shiftDate(start, 6);
+
+  const startLabel = new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+  }).format(start);
+
+  const endLabel = new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(end);
+
+  return `${startLabel} – ${endLabel}`;
+}
+
+function CalendarView({
+  sessions,
+  anchorDate,
+  view,
+  onViewChange,
+  onNavigate,
+  onToday,
+  onSelectSession,
+  onCreateForDate,
+  canManage,
+}) {
+  const dates =
+    view === "week"
+      ? Array.from({ length: 7 }, (_, index) =>
+          shiftDate(startOfWeek(anchorDate), index),
+        )
+      : getMonthCalendarDates(anchorDate);
+
+  const today = localDateString(new Date());
+
+  const weekDays = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
+  function sessionsOn(date) {
+    const dateKey = localDateString(date);
+    return sessions.filter((session) => session.date === dateKey);
+  }
+
+  return (
+    <div className="classes-calendar" aria-label="Class calendar">
+      <div className="classes-calendar__toolbar">
+        <div className="classes-calendar__navigation">
+          <button
+            type="button"
+            className="classes-calendar__nav-button"
+            onClick={() => onNavigate(-1)}
+            aria-label={`Previous ${view}`}
+          >
+            ‹
+          </button>
+
+          <button
+            type="button"
+            className="classes-calendar__today-button"
+            onClick={onToday}
+          >
+            Today
+          </button>
+
+          <button
+            type="button"
+            className="classes-calendar__nav-button"
+            onClick={() => onNavigate(1)}
+            aria-label={`Next ${view}`}
+          >
+            ›
+          </button>
+
+          <h3 className="classes-calendar__title">
+            {formatCalendarHeading(anchorDate, view)}
+          </h3>
+        </div>
+
+        <div
+          className="classes-calendar__view-toggle"
+          role="group"
+          aria-label="Calendar view"
+        >
+          <button
+            type="button"
+            aria-pressed={view === "week"}
+            className={view === "week" ? "is-active" : ""}
+            onClick={() => onViewChange("week")}
+          >
+            Week
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={view === "month"}
+            className={view === "month" ? "is-active" : ""}
+            onClick={() => onViewChange("month")}
+          >
+            Month
+          </button>
+        </div>
+      </div>
+
+      {view === "week" ? (
+        <div className="classes-calendar__week" aria-label="Weekly schedule">
+          {dates.map((date, index) => {
+            const dateKey = localDateString(date);
+            const daySessions = sessionsOn(date);
+
+            return (
+              <section
+                className={
+                  "classes-calendar__day" +
+                  (dateKey === today ? " is-today" : "")
+                }
+                key={dateKey}
+              >
+                <header className="classes-calendar__day-heading">
+                  <span>{weekDays[index]}</span>
+                  <strong>{date.getDate()}</strong>
+                </header>
+
+                <div className="classes-calendar__day-sessions">
+                  {daySessions.length ? (
+                    daySessions.map((session) => (
+                      <button
+                        className="classes-calendar__event"
+                        type="button"
+                        key={session.id}
+                        onClick={() => onSelectSession(session)}
+                      >
+                        <strong>{session.course}</strong>
+                        <span>
+                          {formatTime(session.startTime)}–
+                          {formatTime(session.endTime)}
+                        </span>
+                        <small>
+                          {session.room} · {session.presenter} ·{" "}
+                          {getStatus(session)}
+                        </small>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="classes-calendar__empty-day">No sessions</p>
+                  )}
+                </div>
+
+                {canManage && (
+                  <button
+                    type="button"
+                    className="classes-calendar__add"
+                    onClick={() => onCreateForDate(dateKey)}
+                  >
+                    + Add class
+                  </button>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="classes-calendar__month-wrap">
+          <div className="classes-calendar__month-weekdays" aria-hidden="true">
+            {weekDays.map((day) => (
+              <span key={day}>{day.slice(0, 3)}</span>
+            ))}
+          </div>
+
+          <div
+            className="classes-calendar__month"
+            aria-label="Monthly schedule"
+          >
+            {dates.map((date) => {
+              const dateKey = localDateString(date);
+              const daySessions = sessionsOn(date);
+              const isCurrentMonth = date.getMonth() === anchorDate.getMonth();
+
+              return (
+                <section
+                  className={
+                    "classes-calendar__month-day" +
+                    (isCurrentMonth ? "" : " is-outside-month") +
+                    (dateKey === today ? " is-today" : "")
+                  }
+                  key={dateKey}
+                >
+                  <div className="classes-calendar__month-date">
+                    <span>{date.getDate()}</span>
+
+                    {canManage && (
+                      <button
+                        type="button"
+                        aria-label={`Add class on ${formatDate(dateKey)}`}
+                        onClick={() => onCreateForDate(dateKey)}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="classes-calendar__month-events">
+                    {daySessions.map((session) => (
+                      <button
+                        className="classes-calendar__month-event"
+                        type="button"
+                        key={session.id}
+                        onClick={() => onSelectSession(session)}
+                        title={`${session.course}, ${formatTime(
+                          session.startTime,
+                        )}–${formatTime(session.endTime)}, ${session.room}`}
+                      >
+                        <strong>{formatTime(session.startTime)}</strong>{" "}
+                        {session.course}{" "}
+                        {session.status !== "scheduled" &&
+                          `(${getStatus(session)})`}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function findScheduleConflict(form, sessions, editingSessionId) {
+  const staffIds = [form.presenter, form.assistant].filter(Boolean).map(Number);
+  const studentIds = new Set(form.studentIds.map(Number));
+
+  return sessions
+    .map((session) => {
+      if (
+        String(session.id) === String(editingSessionId) ||
+        session.status !== "scheduled" ||
+        session.date !== form.date
+      ) {
+        return null;
+      }
+
+      if (
+        !(form.startTime < session.endTime && form.endTime > session.startTime)
+      ) {
+        return null;
+      }
+
+      const reasons = [];
+
+      if (
+        staffIds.includes(Number(session.presenterId)) ||
+        (session.assistantId && staffIds.includes(Number(session.assistantId)))
+      ) {
+        reasons.push("staff are already assigned");
+      }
+
+      if (
+        session.room.trim().toLowerCase() === form.room.trim().toLowerCase()
+      ) {
+        reasons.push("the room is already booked");
+      }
+
+      if (session.studentIds.some((id) => studentIds.has(Number(id)))) {
+        reasons.push("a selected student is already scheduled");
+      }
+
+      return reasons.length ? { ...session, conflictReasons: reasons } : null;
+    })
+    .find(Boolean);
+}
+
+function ClassForm({
+  classItem,
+  initialDate = "",
+  onClose,
+  onSave,
+  courses,
+  staff,
+  students,
+  sessions,
+}) {
   const [form, setForm] = useState(
     classItem
       ? {
-          course: String(classItem.courseId ?? ""),
-          date: classItem.date ?? "",
-          startTime: classItem.startTime ?? "16:00",
-          endTime: classItem.endTime ?? "17:00",
-          room: classItem.room ?? "",
-          capacity: String(classItem.capacity ?? 20),
-          presenter: String(classItem.presenterId ?? ""),
-          assistant: String(classItem.assistantId ?? ""),
-          studentIds: classItem.studentIds ?? [],
+          course: String(classItem.courseId),
+          date: classItem.date,
+          startTime: classItem.startTime,
+          endTime: classItem.endTime,
+          room: classItem.room,
+          capacity: String(classItem.capacity),
+          presenter: String(classItem.presenterId),
+          assistant: String(classItem.assistantId || ""),
+          studentIds: classItem.studentIds,
         }
       : {
           course: "",
-          date: dateAfter(1),
+          date: initialDate || dateAfter(1),
           startTime: "16:00",
           endTime: "17:00",
           room: "",
@@ -77,12 +411,7 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
         },
   );
 
-  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
-  const selectedCourse = courses.find(
-    (course) => String(course.id) === String(form.course),
-  );
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -107,50 +436,52 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
       !form.presenter.trim() ||
       !form.room.trim()
     ) {
-      setError("Complete the course, date, room and presenter fields.");
+      notify.warning("Complete the subject, date, room and presenter fields.");
       return;
     }
 
     if (form.endTime <= form.startTime) {
-      setError("The end time must be later than the start time.");
+      notify.warning("The end time must be later than the start time.");
       return;
     }
 
     const capacity = Number(form.capacity);
 
     if (!Number.isInteger(capacity) || capacity < 1) {
-      setError("Enter a capacity of at least one student.");
+      notify.warning("Enter a capacity of at least one student.");
       return;
     }
 
     if (form.studentIds.length > capacity) {
-      setError("The selected student count cannot exceed the class capacity.");
+      notify.warning(
+        "The selected student count cannot exceed the class capacity.",
+      );
       return;
     }
 
-    setError("");
+    const conflict = findScheduleConflict(form, sessions, classItem?.id);
+
+    if (conflict) {
+      notify.warning(
+        `This session overlaps with ${conflict.course} (${formatTime(
+          conflict.startTime,
+        )}–${formatTime(conflict.endTime)}): ${conflict.conflictReasons.join(
+          ", ",
+        )}. Change the schedule, presenter, room or roster before saving.`,
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
       await onSave({ ...form, capacity });
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      notify.error(errorMessage(requestError));
     } finally {
       setSaving(false);
     }
   }
-
-  const activeStaff = staff.filter(
-    (person) =>
-      person.is_active &&
-      ["presenter", "admin"].includes(person.role?.toLowerCase()),
-  );
-
-  const assistantStaff = staff.filter(
-    (person) =>
-      person.is_active &&
-      ["assistant", "admin"].includes(person.role?.toLowerCase()),
-  );
 
   return (
     <div
@@ -188,15 +519,14 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
 
         <form className="classes-form" onSubmit={handleSubmit}>
           <label>
-            Course or subject
+            Subject
             <select
               name="course"
               value={form.course}
               onChange={updateField}
               required
             >
-              <option value="">Select a course</option>
-
+              <option value="">Select a subject</option>
               {courses
                 .filter((course) => course.is_active)
                 .map((course) => (
@@ -204,12 +534,6 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
                     {course.name}
                   </option>
                 ))}
-
-              {selectedCourse && !selectedCourse.is_active && (
-                <option value={selectedCourse.id}>
-                  {selectedCourse.name} (inactive)
-                </option>
-              )}
             </select>
           </label>
 
@@ -272,33 +596,43 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
                 required
               >
                 <option value="">Select a presenter</option>
-                {activeStaff.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {`${person.first_name} ${person.last_name}`.trim() ||
-                      person.username}
-                  </option>
-                ))}
+                {staff
+                  .filter(
+                    (person) =>
+                      person.is_active &&
+                      (["presenter", "admin"].includes(person.role) ||
+                        person.is_superuser),
+                  )
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {`${person.first_name} ${person.last_name}`.trim() ||
+                        person.email}
+                    </option>
+                  ))}
               </select>
             </label>
 
             <label>
-              <span>
-                Assistant{" "}
-                <small className="classes-form__optional">Optional</small>
-              </span>
+              Assistant (optional)
               <select
                 name="assistant"
-                aria-label="Assistant"
                 value={form.assistant}
                 onChange={updateField}
               >
                 <option value="">No assistant</option>
-                {assistantStaff.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {`${person.first_name} ${person.last_name}`.trim() ||
-                      person.username}
-                  </option>
-                ))}
+                {staff
+                  .filter(
+                    (person) =>
+                      person.is_active &&
+                      (["assistant", "admin"].includes(person.role) ||
+                        person.is_superuser),
+                  )
+                  .map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {`${person.first_name} ${person.last_name}`.trim() ||
+                        person.email}
+                    </option>
+                  ))}
               </select>
             </label>
           </div>
@@ -317,11 +651,19 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
 
           <fieldset className="classes-student-picker">
             <legend>Assign registered students</legend>
-            <p>Select the students who will attend this class.</p>
+            <p>
+              Select students for this session. Saving also enrols them in the
+              subject.
+            </p>
 
             <div className="classes-student-picker__list">
-              {students.length ? (
-                students.map((student) => (
+              {students
+                .filter(
+                  (student) =>
+                    student.is_active !== false ||
+                    form.studentIds.includes(student.id),
+                )
+                .map((student) => (
                   <label className="classes-student-option" key={student.id}>
                     <input
                       type="checkbox"
@@ -335,22 +677,13 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
                       </small>
                     </span>
                   </label>
-                ))
-              ) : (
-                <p>No students are available to assign.</p>
-              )}
+                ))}
             </div>
 
             <span className="classes-student-picker__count">
               {form.studentIds.length} selected · Capacity {form.capacity || 0}
             </span>
           </fieldset>
-
-          {error && (
-            <p className="classes-form__error" role="alert">
-              {error}
-            </p>
-          )}
 
           <div className="classes-form__actions">
             <button
@@ -360,6 +693,7 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
             >
               Cancel
             </button>
+
             <button
               className="classes-primary-button"
               type="submit"
@@ -378,7 +712,40 @@ function ClassForm({ classItem, onClose, onSave, courses, staff, students }) {
   );
 }
 
-function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
+function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    api
+      .get(`/sessions/${classItem.id}/status-history/`, {
+        signal: controller.signal,
+      })
+      .then(({ data }) => setHistory(data))
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [classItem.id]);
+
+  async function run(action) {
+    setBusy(true);
+
+    try {
+      await action();
+    } catch (requestError) {
+      notify.error(
+        requestError.response
+          ? errorMessage(requestError)
+          : requestError.message,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const enrolledStudents = students.filter((student) =>
     classItem.studentIds.includes(student.id),
   );
@@ -423,18 +790,17 @@ function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
               {formatTime(classItem.endTime)}
             </dd>
           </div>
+
           <div>
             <dt>Room</dt>
             <dd>{classItem.room}</dd>
           </div>
+
           <div>
             <dt>Presenter</dt>
             <dd>{classItem.presenter}</dd>
           </div>
-          <div>
-            <dt>Assistant</dt>
-            <dd>{classItem.assistant || "No assistant assigned"}</dd>
-          </div>
+
           <div>
             <dt>Enrolment</dt>
             <dd>
@@ -442,6 +808,69 @@ function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
             </dd>
           </div>
         </dl>
+
+        <p
+          className={`classes-status classes-status--${getStatus(
+            classItem,
+          ).toLowerCase()}`}
+        >
+          {getStatus(classItem)}
+        </p>
+
+        {classItem.assistant && (
+          <p>
+            <strong>Assistant:</strong> {classItem.assistant}
+          </p>
+        )}
+
+        {classItem.status_reason && (
+          <p>
+            <strong>Reason:</strong> {classItem.status_reason}
+          </p>
+        )}
+
+        {classItem.has_history && (
+          <p className="classes-history-hint">
+            This session has recorded history. Its original date, time, room and
+            subject are retained.
+          </p>
+        )}
+
+        <div className="classes-form__actions">
+          {classItem.status === "scheduled" && (
+            <Link
+              className="classes-primary-button"
+              to={`/attendance?session=${classItem.id}`}
+            >
+              Take attendance
+            </Link>
+          )}
+
+          <button
+            type="button"
+            className="classes-secondary-button"
+            disabled={busy}
+            onClick={() => run(() => printClassList(classItem.id))}
+          >
+            Print class list
+          </button>
+
+          <button
+            type="button"
+            className="classes-secondary-button"
+            disabled={busy}
+            onClick={() =>
+              run(() =>
+                download(
+                  `/sessions/${classItem.id}/class-list/?export=csv`,
+                  `class-${classItem.id}-list.csv`,
+                ),
+              )
+            }
+          >
+            Export class list
+          </button>
+        </div>
 
         <section
           className="classes-roster"
@@ -465,6 +894,76 @@ function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
           )}
         </section>
 
+        {onStatus && (
+          <section className="classes-status-controls">
+            <label>
+              Reason (optional)
+              <input
+                maxLength={500}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                disabled={busy}
+              />
+            </label>
+
+            <p>
+              Cancel or archive to retain the roster, attendance and notes. Both
+              release the booking and make its history read-only.
+            </p>
+
+            <div className="classes-form__actions">
+              {classItem.status === "scheduled" && (
+                <button
+                  className="classes-secondary-button"
+                  disabled={busy}
+                  type="button"
+                  onClick={() => run(() => onStatus("cancel", reason))}
+                >
+                  Cancel session
+                </button>
+              )}
+
+              {classItem.status !== "archived" && (
+                <button
+                  className="classes-secondary-button"
+                  disabled={busy}
+                  type="button"
+                  onClick={() => run(() => onStatus("archive", reason))}
+                >
+                  Archive session
+                </button>
+              )}
+
+              {classItem.status !== "scheduled" && (
+                <button
+                  className="classes-primary-button"
+                  disabled={busy}
+                  type="button"
+                  onClick={() => run(() => onStatus("restore", reason))}
+                >
+                  Unarchive / resume session
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {history.length > 0 && (
+          <details className="classes-status-controls">
+            <summary>Status history</summary>
+            <ul>
+              {history.map((event) => (
+                <li key={event.id}>
+                  {event.previous_status || "Created"} → {event.status} ·{" "}
+                  {event.changed_by_name} ·{" "}
+                  {new Date(event.changed_at).toLocaleString("en-AU")}
+                  {event.reason ? ` · ${event.reason}` : ""}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         <div className="classes-form__actions">
           <button
             className="classes-secondary-button"
@@ -483,16 +982,6 @@ function ClassDetails({ classItem, onClose, onEdit, onDelete, students }) {
               Edit class
             </button>
           )}
-
-          {onDelete && (
-            <button
-              className="classes-secondary-button"
-              type="button"
-              onClick={onDelete}
-            >
-              Delete class
-            </button>
-          )}
         </div>
       </section>
     </div>
@@ -505,11 +994,8 @@ export default function Classes() {
   const staffRecords = useRecords("/auth/users/");
   const studentRecords = useRecords("/students/");
 
-  const { user } = useAuth();
-  const canManage = user?.can_manage;
-
   const classes = useMemo(
-    () => (Array.isArray(records.data) ? records.data.map(sessionRecord) : []),
+    () => (Array.isArray(records.data) ? records.data : []).map(sessionRecord),
     [records.data],
   );
 
@@ -530,41 +1016,45 @@ export default function Classes() {
           id: student.id,
           name: `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim(),
           year: student.year_level ?? "",
+          is_active: student.is_active,
         }),
       ),
     [studentRecords.data],
   );
 
-  const [actionError, setActionError] = useState("");
+  const { user } = useAuth();
+  const canManage = user?.can_manage;
+
   const [query, setQuery] = useState("");
-  const [courseFilter, setCourseFilter] = useState("All courses");
+  const [courseFilter, setCourseFilter] = useState("All subjects");
   const [presenterFilter, setPresenterFilter] = useState("All presenters");
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("All classes");
+  const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [editingClass, setEditingClass] = useState(null);
+  const [initialClassDate, setInitialClassDate] = useState("");
+  const [displayMode, setDisplayMode] = useState("table");
+  const [calendarView, setCalendarView] = useState("week");
+  const [calendarDate, setCalendarDate] = useState(() =>
+    parseLocalDate(localDateString(new Date())),
+  );
 
-  // Use the API subject/course list, plus names on existing sessions.
-  // This keeps historical sessions filterable if a course was archived.
-  const courseOptions = useMemo(() => {
-    const byId = new Map();
+  const courseOptions = Array.isArray(courseRecords.data)
+    ? courseRecords.data
+    : [];
 
-    coursesFromApi.forEach((course) => {
-      byId.set(String(course.id), course);
-    });
-
-    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [coursesFromApi]);
-
-  const courses = useMemo(() => {
-    const names = new Set([
-      ...courseOptions.map((course) => course.name),
-      ...classes.map((item) => item.course).filter(Boolean),
-    ]);
-
-    return [...names].sort((a, b) => a.localeCompare(b));
-  }, [courseOptions, classes]);
+  const courses = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...courseOptions.map((course) => course.name).filter(Boolean),
+          ...classes.map((item) => item.course).filter(Boolean),
+        ]),
+      ].sort(),
+    [courseOptions, classes],
+  );
 
   const presenters = useMemo(
     () =>
@@ -584,31 +1074,21 @@ export default function Classes() {
           .map((student) => student.name)
           .join(" ");
 
-        const searchableValues = [
-          item.course,
-          item.room,
-          item.presenter,
-          item.assistant,
-          studentText,
-        ];
-
         const matchesSearch =
           !search ||
-          searchableValues.some((value) =>
-            String(value ?? "")
-              .toLowerCase()
-              .includes(search),
+          [item.course, item.room, item.presenter, studentText].some((value) =>
+            value.toLowerCase().includes(search),
           );
 
         const matchesCourse =
-          courseFilter === "All courses" || item.course === courseFilter;
+          courseFilter === "All subjects" || item.course === courseFilter;
 
         const matchesPresenter =
           presenterFilter === "All presenters" ||
           item.presenter === presenterFilter;
 
         const matchesDate = !dateFilter || item.date === dateFilter;
-        const status = getStatus(item.date);
+        const status = getStatus(item);
         const matchesStatus =
           statusFilter === "All classes" || statusFilter === status;
 
@@ -635,6 +1115,18 @@ export default function Classes() {
     statusFilter,
   ]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, courseFilter, presenterFilter, dateFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredClasses.length / PAGE_SIZE));
+  const displayedPage = Math.min(currentPage, totalPages);
+
+  const pageClasses = filteredClasses.slice(
+    (displayedPage - 1) * PAGE_SIZE,
+    displayedPage * PAGE_SIZE,
+  );
+
   async function saveClass(form) {
     const data = {
       course: Number(form.course),
@@ -657,6 +1149,32 @@ export default function Classes() {
     records.refresh();
     setDialogOpen(false);
     setEditingClass(null);
+    setInitialClassDate("");
+
+    notify.success(
+      editingClass ? "Class session updated." : "Class session created.",
+    );
+  }
+
+  function openCreateForDate(date = "") {
+    setEditingClass(null);
+    setInitialClassDate(date);
+    setDialogOpen(true);
+  }
+
+  function navigateCalendar(direction) {
+    setCalendarDate((current) => {
+      if (calendarView === "week") {
+        return shiftDate(current, direction * 7);
+      }
+
+      return new Date(
+        current.getFullYear(),
+        current.getMonth() + direction,
+        1,
+        12,
+      );
+    });
   }
 
   function openEdit(classItem) {
@@ -667,44 +1185,34 @@ export default function Classes() {
 
   function clearFilters() {
     setQuery("");
-    setCourseFilter("All courses");
+    setCourseFilter("All subjects");
     setPresenterFilter("All presenters");
     setDateFilter("");
     setStatusFilter("All classes");
   }
 
-  const loading =
-    records.loading ||
-    courseRecords.loading ||
-    staffRecords.loading ||
-    studentRecords.loading;
-
-  const loadError =
-    records.error ||
-    courseRecords.error ||
-    staffRecords.error ||
-    studentRecords.error;
-
-  function retryLoading() {
-    records.refresh();
-    courseRecords.refresh();
-    staffRecords.refresh();
-    studentRecords.refresh();
-  }
-
   return (
     <main className="classes-page">
       <RequestState
-        loading={loading}
-        error={loadError}
-        onRetry={retryLoading}
+        loading={
+          records.loading ||
+          courseRecords.loading ||
+          staffRecords.loading ||
+          studentRecords.loading
+        }
+        error={
+          records.error ||
+          courseRecords.error ||
+          staffRecords.error ||
+          studentRecords.error
+        }
+        onRetry={() => {
+          records.refresh();
+          courseRecords.refresh();
+          staffRecords.refresh();
+          studentRecords.refresh();
+        }}
       />
-
-      {actionError && (
-        <p className="crm-message crm-message--error" role="alert">
-          {actionError}
-        </p>
-      )}
 
       <section
         className="classes-toolbar"
@@ -718,19 +1226,19 @@ export default function Classes() {
           </svg>
           <input
             type="search"
-            placeholder="Search course, room, staff or student"
+            placeholder="Search subject, room, presenter or student"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </label>
 
         <label className="classes-filter">
-          <span>Course</span>
+          <span>Subject</span>
           <select
             value={courseFilter}
             onChange={(event) => setCourseFilter(event.target.value)}
           >
-            <option>All courses</option>
+            <option>All subjects</option>
             {courses.map((course) => (
               <option key={course} value={course}>
                 {course}
@@ -775,6 +1283,8 @@ export default function Classes() {
             <option>Upcoming</option>
             <option>Today</option>
             <option>Completed</option>
+            <option>Cancelled</option>
+            <option>Archived</option>
           </select>
         </label>
 
@@ -782,10 +1292,7 @@ export default function Classes() {
           <button
             className="classes-primary-button classes-create-button"
             type="button"
-            onClick={() => {
-              setEditingClass(null);
-              setDialogOpen(true);
-            }}
+            onClick={() => openCreateForDate()}
           >
             <span aria-hidden="true">+</span> Create class
           </button>
@@ -798,6 +1305,30 @@ export default function Classes() {
             <h2 id="classes-list-title">Classes and sessions</h2>
             <p>Manage schedules, staff assignments and student enrolments.</p>
           </div>
+
+          <div
+            className="classes-display-toggle"
+            role="group"
+            aria-label="Classes display"
+          >
+            <button
+              type="button"
+              aria-pressed={displayMode === "table"}
+              className={displayMode === "table" ? "is-active" : ""}
+              onClick={() => setDisplayMode("table")}
+            >
+              Table
+            </button>
+
+            <button
+              type="button"
+              aria-pressed={displayMode === "calendar"}
+              className={displayMode === "calendar" ? "is-active" : ""}
+              onClick={() => setDisplayMode("calendar")}
+            >
+              Calendar
+            </button>
+          </div>
         </div>
 
         <div className="classes-results" aria-live="polite">
@@ -806,7 +1337,7 @@ export default function Classes() {
           </span>
 
           {(query ||
-            courseFilter !== "All courses" ||
+            courseFilter !== "All subjects" ||
             presenterFilter !== "All presenters" ||
             dateFilter ||
             statusFilter !== "All classes") && (
@@ -819,102 +1350,127 @@ export default function Classes() {
             </button>
           )}
 
-          <span className="classes-scroll-hint">
-            Scroll horizontally to view all columns
-          </span>
+          {displayMode === "table" && (
+            <span className="classes-scroll-hint">
+              Scroll horizontally to view all columns
+            </span>
+          )}
         </div>
 
-        {filteredClasses.length ? (
-          <div
-            className="classes-table-wrap"
-            role="region"
-            aria-label="Class sessions table"
-            tabIndex={0}
-          >
-            <table className="classes-table">
-              <thead>
-                <tr>
-                  <th scope="col">Course / subject</th>
-                  <th scope="col">Date and time</th>
-                  <th scope="col">Room</th>
-                  <th scope="col">Presenter</th>
-                  <th scope="col">Assistant</th>
-                  <th scope="col">Students</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Actions</span>
-                  </th>
-                </tr>
-              </thead>
+        {displayMode === "calendar" ? (
+          <CalendarView
+            sessions={filteredClasses}
+            anchorDate={calendarDate}
+            view={calendarView}
+            onViewChange={setCalendarView}
+            onNavigate={navigateCalendar}
+            onToday={() =>
+              setCalendarDate(parseLocalDate(localDateString(new Date())))
+            }
+            onSelectSession={setSelectedClass}
+            onCreateForDate={openCreateForDate}
+            canManage={canManage}
+          />
+        ) : filteredClasses.length ? (
+          <>
+            <div
+              className="classes-table-wrap"
+              role="region"
+              aria-label="Class sessions table"
+              tabIndex={0}
+            >
+              <table className="classes-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Subject</th>
+                    <th scope="col">Date and time</th>
+                    <th scope="col">Room</th>
+                    <th scope="col">Presenter</th>
+                    <th scope="col">Students</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {filteredClasses.map((item) => {
-                  const status = getStatus(item.date);
+                <tbody>
+                  {pageClasses.map((item) => {
+                    const status = getStatus(item);
 
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <span className="classes-course-name">
-                          {item.course}
-                        </span>
-                        <span className="classes-id">{item.id}</span>
-                      </td>
-                      <td>
-                        {formatDate(item.date)}
-                        <span className="classes-cell-subtext">
-                          {formatTime(item.startTime)}–
-                          {formatTime(item.endTime)}
-                        </span>
-                      </td>
-                      <td>{item.room}</td>
-                      <td>{item.presenter}</td>
-                      <td>
-                        {item.assistant || (
-                          <span className="classes-not-assigned">
-                            Not assigned
+                    return (
+                      <tr key={item.id}>
+                        <td>
+                          <span className="classes-course-name">
+                            {item.course}
                           </span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="classes-enrolment-count">
-                          {item.studentIds.length}
-                        </span>
-                        <span className="classes-cell-subtext">
-                          of {item.capacity} capacity
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`classes-status classes-status--${status.toLowerCase()}`}
-                        >
-                          {status}
-                        </span>
-                      </td>
-                      <td className="classes-row-actions">
-                        <button
-                          className="classes-view-button"
-                          type="button"
-                          onClick={() => setSelectedClass(item)}
-                        >
-                          View
-                        </button>
+                          <span className="classes-id">{item.id}</span>
+                        </td>
 
-                        {canManage && (
-                          <button
-                            className="classes-edit-button"
-                            type="button"
-                            onClick={() => openEdit(item)}
+                        <td>
+                          {formatDate(item.date)}
+                          <span className="classes-cell-subtext">
+                            {formatTime(item.startTime)}–
+                            {formatTime(item.endTime)}
+                          </span>
+                        </td>
+
+                        <td>{item.room}</td>
+                        <td>{item.presenter}</td>
+
+                        <td>
+                          <span className="classes-enrolment-count">
+                            {item.studentIds.length}
+                          </span>
+                          <span className="classes-cell-subtext">
+                            of {item.capacity} capacity
+                          </span>
+                        </td>
+
+                        <td>
+                          <span
+                            className={`classes-status classes-status--${status.toLowerCase()}`}
                           >
-                            Edit
+                            {status}
+                          </span>
+                        </td>
+
+                        <td className="classes-row-actions">
+                          <button
+                            className="classes-view-button"
+                            type="button"
+                            onClick={() => setSelectedClass(item)}
+                          >
+                            View
                           </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+
+                          {canManage && item.status === "scheduled" && (
+                            <button
+                              className="classes-edit-button"
+                              type="button"
+                              onClick={() => openEdit(item)}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="classes-pagination">
+              <Pagination
+                page={displayedPage}
+                setPage={setCurrentPage}
+                total={filteredClasses.length}
+                label="Class table pages"
+                itemLabel="classes"
+              />
+            </div>
+          </>
         ) : (
           <div className="classes-empty-state">
             <h3>No classes found</h3>
@@ -935,14 +1491,17 @@ export default function Classes() {
       {dialogOpen && (
         <ClassForm
           classItem={editingClass}
+          initialDate={initialClassDate}
           onClose={() => {
             setDialogOpen(false);
             setEditingClass(null);
+            setInitialClassDate("");
           }}
           onSave={saveClass}
           courses={courseOptions}
           staff={staff}
           students={students}
+          sessions={classes}
         />
       )}
 
@@ -951,26 +1510,29 @@ export default function Classes() {
           classItem={selectedClass}
           onClose={() => setSelectedClass(null)}
           students={students}
-          onEdit={canManage ? () => openEdit(selectedClass) : null}
-          onDelete={
+          onEdit={
+            canManage && selectedClass.status === "scheduled"
+              ? () => openEdit(selectedClass)
+              : null
+          }
+          onStatus={
             canManage
-              ? async () => {
-                  if (
-                    !window.confirm(
-                      "Delete this class session? Sessions with recorded history cannot be deleted.",
-                    )
-                  ) {
-                    return;
-                  }
+              ? async (action, reason) => {
+                  await api.post(`/sessions/${selectedClass.id}/${action}/`, {
+                    reason,
+                  });
 
-                  try {
-                    await api.delete(`/sessions/${selectedClass.id}/`);
-                    setSelectedClass(null);
-                    records.refresh();
-                    setActionError("");
-                  } catch (requestError) {
-                    setActionError(errorMessage(requestError));
-                  }
+                  setSelectedClass(null);
+
+                  notify.success(
+                    action === "restore"
+                      ? "Class session resumed. Roster and history retained."
+                      : action === "archive"
+                        ? "Class session archived. Roster and history retained."
+                        : "Class session cancelled. History retained.",
+                  );
+
+                  records.refresh();
                 }
               : null
           }

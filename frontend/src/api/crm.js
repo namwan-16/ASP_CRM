@@ -47,9 +47,13 @@ export function studentRecord(row) {
 }
 
 export function guardianRecord(row) {
+  const links = Array.isArray(row.students) ? row.students : [];
   return { ...row, firstName: row.first_name, lastName: row.last_name,
-    relationship: [...new Set(row.students.map((link) => link.relationship))].join(", "),
-    studentNames: row.students.map((link) => link.name), studentIds: row.students.map((link) => link.student) };
+    mobilePhone: row.phone || "",
+    relationship: [...new Set(links.map((link) => link.relationship))].join(", "),
+    studentNames: links.map((link) => link.name), studentIds: links.map((link) => link.student),
+    studentLinks: links.map((link) => ({ ...link, studentId: link.student, studentName: link.name,
+      primaryContact: link.is_primary_contact, emergencyContact: link.is_emergency_contact })) };
 }
 
 export function sessionRecord(row) {

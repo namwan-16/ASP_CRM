@@ -160,10 +160,14 @@ function getFirstName(user) {
     user?.first_name ||
     user?.firstName ||
     user?.name ||
-    user?.username ||
-    "there";
+    (user?.username && !user.username.includes("@") ? user.username : "");
 
-  return String(value).trim().split(/\s+/)[0] || "there";
+  if (String(value).trim()) {
+    return String(value).trim().split(/\s+/)[0];
+  }
+
+  const role = String(user?.role || user?.user_type || "").toLowerCase();
+  return role.includes("admin") ? "Administrator" : "there";
 }
 
 export default function Dashboard() {
@@ -181,7 +185,6 @@ export default function Dashboard() {
             Your workspace for today’s after-school program tasks.
           </p>
         </div>
-
       </header>
 
       <section

@@ -24,6 +24,7 @@ import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import PersonOutlineOutlined from "@mui/icons-material/PersonOutlineOutlined";
 import MenuOpenOutlined from "@mui/icons-material/MenuOpenOutlined";
+import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 
 import "./Layout.css";
 
@@ -79,7 +80,7 @@ export const sidebarPages = [
   {
     path: "/staff",
     label: "Staff & Permissions",
-    icon: FamilyRestroomOutlined,
+    icon: AdminPanelSettingsOutlined,
     adminOnly: true,
   },
 ];
@@ -120,7 +121,7 @@ export default function Layout() {
     .join(" ")
     .trim();
 
-  const displayName = fullName || user?.username || "User";
+  const displayName = fullName || user?.email || "User";
   const roleLabel = administrator ? "Administrator" : "Presenter";
 
   const initials = fullName
@@ -240,7 +241,7 @@ export default function Layout() {
                       <span>{label}</span>
                     </NavLink>
 
-                    {administrator && (
+                    {(administrator || user?.role === "presenter") && (
                       <button
                         className="crm-nav-group__toggle"
                         type="button"
@@ -271,7 +272,7 @@ export default function Layout() {
                     )}
                   </div>
 
-                  {administrator && classesExpanded && (
+                  {(administrator || user?.role === "presenter") && classesExpanded && (
                     <NavLink
                       to="/subjects"
                       title={collapsed ? "Manage subjects" : undefined}
@@ -289,7 +290,7 @@ export default function Layout() {
                         className="crm-menu-icon"
                         aria-hidden="true"
                       />
-                      <span>Manage subjects</span>
+                      <span>{administrator ? "Manage subjects" : "Class subjects"}</span>
                     </NavLink>
                   )}
                 </div>
