@@ -28,14 +28,29 @@ export function AuthProvider({ children }) {
     loadCurrentUser();
   }, []);
 
-  const login = async (username, password) => {
-    const tokenResponse = await api.post("/auth/login/", { username, password });
+  const login = async (email, password) => {
+    const tokenResponse = await api.post("/auth/login/", {
+      email: email.trim().toLowerCase(),
+      password,
+    });
     localStorage.setItem("accessToken", tokenResponse.data.access);
     localStorage.setItem("refreshToken", tokenResponse.data.refresh);
 
     const userResponse = await api.get("/auth/me/");
     setUser(userResponse.data);
     return userResponse.data;
+  };
+
+  const updateProfile = async (details) => {
+    const response = await api.patch("/auth/me/", details);
+    setUser(response.data);
+    return response.data;
+  };
+
+  const clearSession = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    setUser(null);
   };
 
   const register = (formData) => api.post("/auth/register/", formData);
@@ -45,14 +60,20 @@ export function AuthProvider({ children }) {
     try {
       if (refresh) await api.post("/auth/logout/", { refresh });
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      setUser(null);
+      clearSession();
     }
   };
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
+    () => ({
+      user,
+      loading,
+      login,
+      register,
+      logout,
+      updateProfile,
+      clearSession,
+    }),
     [user, loading],
   );
 
@@ -64,4 +85,3 @@ export function useAuth() {
   if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 }
-

@@ -33,15 +33,19 @@ class GuardianLinkInput(serializers.Serializer):
 
 class GuardianSerializer(serializers.ModelSerializer):
     students = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     links = GuardianLinkInput(many=True, write_only=True, required=False)
 
     class Meta:
         model = Guardian
-        fields = ("id", "first_name", "last_name", "email", "phone", "students", "links", "created_at", "updated_at")
+        fields = ("id", "first_name", "last_name", "email", "phone", "students", "links", "can_delete", "created_at", "updated_at")
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_phone(self, value):
         return normalize_phone(value)
+
+    def get_can_delete(self, obj):
+        return not obj.student_links.exists()
 
     def validate_links(self, value):
         if len({link["student"].pk for link in value}) != len(value):
@@ -64,7 +68,8 @@ class GuardianSerializer(serializers.ModelSerializer):
     def save_links(self, guardian, links):
         if links is None:
             return
-        list(Student.objects.select_for_update().filter(pk__in=[link["student"].pk for link in links]).order_by("pk"))
+        ids = set(guardian.student_links.values_list("student_id", flat=True)) | {link["student"].pk for link in links}
+        list(Student.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
         for link in links:
             if link.get("is_primary_contact") and StudentGuardian.objects.filter(
                 student=link["student"], is_primary_contact=True
@@ -107,6 +112,10 @@ class StudentGuardianSerializer(serializers.ModelSerializer):
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    from classes.models import Course
+    subject_id = serializers.PrimaryKeyRelatedField(source="subject_course", queryset=Course.objects.all(),
+                                                   required=False, allow_null=True)
+    can_delete = serializers.SerializerMethodField()
     guardians = StudentGuardianSerializer(source="guardian_links", many=True, read_only=True)
     guardian_id = serializers.PrimaryKeyRelatedField(queryset=Guardian.objects.all(), write_only=True, required=False, allow_null=True)
     guardian_relationship = serializers.CharField(write_only=True, required=False, default="Guardian", max_length=50)
@@ -115,7 +124,7 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ("id", "first_name", "last_name", "date_of_birth", "school", "year_level", "email", "phone", "subject",
                   "permission_to_travel_alone", "is_active", "medical_information", "special_circumstances", "guardians",
-                  "guardian_id", "guardian_relationship", "created_at", "updated_at")
+                  "guardian_id", "guardian_relationship", "subject_id", "can_delete", "created_at", "updated_at")
         read_only_fields = ("id", "created_at", "updated_at")
 
     def validate_date_of_birth(self, value):
@@ -125,6 +134,36 @@ class StudentSerializer(serializers.ModelSerializer):
 
     def validate_phone(self, value):
         return normalize_phone(value) if value else value
+
+    def get_can_delete(self, obj):
+        from config.lifecycle import student_has_history
+        return not student_has_history(obj)
+
+    def validate(self, attrs):
+        from classes.models import Course
+        if "subject_course" in attrs:
+            course = attrs["subject_course"]
+            if course and not course.is_active and getattr(self.instance, "subject_course_id", None) != course.pk:
+                raise serializers.ValidationError({"subject_id": "Choose an active subject."})
+            attrs["subject"] = course.name if course else ""
+        elif "subject" in attrs:
+            name = attrs["subject"].strip()
+            course = Course.objects.filter(name__iexact=name).first() if name else None
+            unchanged = self.instance and name == self.instance.subject
+            if name and unchanged and self.instance.subject_course_id:
+                # Older clients/imports may still send the pre-rename text.
+                course = self.instance.subject_course
+            if name and not unchanged and (not course or not course.is_active):
+                raise serializers.ValidationError({"subject": "Choose an active subject from the Subjects page."})
+            attrs["subject_course"] = course
+            attrs["subject"] = course.name if course else name
+        return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.subject_course_id:
+            data["subject"] = instance.subject_course.name
+        return data
 
     def save_guardian(self, student, guardian, relationship):
         if guardian:
@@ -152,3 +191,9 @@ class StudentSerializer(serializers.ModelSerializer):
             StudentGuardian.objects.filter(student=student, is_primary_contact=True).update(is_primary_contact=False)
         self.save_guardian(student, guardian, relationship)
         return student
+
+
+class EmergencyStudentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Student
+        fields = ("id", "first_name", "last_name", "year_level", "is_active")

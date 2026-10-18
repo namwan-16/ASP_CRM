@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import "./Staff.css";
 import api from "../api/client";
 import { errorMessage } from "../api/crm";
+import { notify } from "../utils/notifications";
 import { useAuth } from "../context/AuthContext";
 import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
+import Pagination from "../components/Pagination";
+import usePagination from "../hooks/usePagination";
 
 const emptyForm = {
-  username: "",
   first_name: "",
   last_name: "",
   email: "",
@@ -16,32 +19,49 @@ const emptyForm = {
 };
 
 export default function Staff() {
+  const location = useLocation();
   const { user } = useAuth();
   const records = useRecords("/auth/users/");
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [staffQuery, setStaffQuery] = useState("");
+
+  useEffect(() => {
+    const globalSearch = location.state?.globalSearch;
+    if (typeof globalSearch === "string" && globalSearch.trim()) {
+      setStaffQuery(globalSearch);
+    }
+  }, [location.key]);
 
   const staffMembers = Array.isArray(records.data) ? records.data : [];
   const normalizedStaffQuery = staffQuery.trim().toLowerCase();
 
   const filteredStaff = staffMembers.filter((person) => {
-    const fullName = `${person.first_name ?? ""} ${person.last_name ?? ""}`;
-    const searchableText = `${fullName} ${person.username ?? ""}`.toLowerCase();
+    const fullName =
+      `${person.first_name ?? ""} ${person.last_name ?? ""}`.trim();
+    const role = person.role === "admin" ? "administrator admin" : person.role;
+    const accountStatus = person.is_active
+      ? "active"
+      : "inactive awaiting approval";
+
+    const searchableText =
+      `${fullName} ${person.email ?? ""} ${role ?? ""} ${accountStatus}`.toLowerCase();
+
     return searchableText.includes(normalizedStaffQuery);
   });
 
-  async function perform(operation) {
+  const pagination = usePagination(filteredStaff, staffQuery);
+
+  async function perform(operation, successMessage = "Staff account updated.") {
     setBusy(true);
-    setError("");
 
     try {
       await operation();
       await records.refresh();
+      notify.success(successMessage);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      notify.error(errorMessage(requestError));
     } finally {
       setBusy(false);
     }
@@ -51,10 +71,14 @@ export default function Staff() {
     event.preventDefault();
 
     await perform(async () => {
-      await api.post("/auth/users/", { ...form, is_active: true });
+      await api.post("/auth/users/", {
+        ...form,
+        email: form.email.trim().toLowerCase(),
+        is_active: true,
+      });
       setForm(emptyForm);
       setShowCreateModal(false);
-    });
+    }, "Staff account created.");
   }
 
   function closeCreateModal() {
@@ -62,7 +86,6 @@ export default function Staff() {
 
     setShowCreateModal(false);
     setForm(emptyForm);
-    setError("");
   }
 
   useEffect(() => {
@@ -101,7 +124,7 @@ export default function Staff() {
       <header className="staff-page__heading">
         <div>
           <p className="staff-page__eyebrow">ADMINISTRATION</p>
-          <h1>Staff &amp; Roles</h1>
+          <h1>Staff &amp; Permissions</h1>
           <p className="staff-page__description">
             Create staff accounts, manage their roles, and control access.
           </p>
@@ -111,10 +134,7 @@ export default function Staff() {
           <button
             className="staff-primary-button staff-page__add-button"
             type="button"
-            onClick={() => {
-              setError("");
-              setShowCreateModal(true);
-            }}
+            onClick={() => setShowCreateModal(true)}
           >
             <span aria-hidden="true">+</span>
             Add staff member
@@ -127,12 +147,6 @@ export default function Staff() {
         error={records.error}
         onRetry={records.refresh}
       />
-
-      {error && !showCreateModal && (
-        <p className="staff-message staff-message--error" role="alert">
-          {error}
-        </p>
-      )}
 
       {showCreateModal && (
         <div
@@ -170,26 +184,13 @@ export default function Staff() {
             <form className="staff-form" onSubmit={handleCreate}>
               <div className="staff-form__grid">
                 <label>
-                  Username
-                  <input
-                    name="username"
-                    type="text"
-                    autoComplete="off"
-                    autoFocus
-                    required
-                    value={form.username}
-                    onChange={(event) =>
-                      updateForm("username", event.target.value)
-                    }
-                  />
-                </label>
-
-                <label>
                   Email address
                   <input
                     name="email"
                     type="email"
                     autoComplete="email"
+                    autoFocus
+                    required
                     value={form.email}
                     onChange={(event) =>
                       updateForm("email", event.target.value)
@@ -250,12 +251,6 @@ export default function Staff() {
                 </label>
               </div>
 
-              {error && (
-                <p className="staff-message staff-message--error" role="alert">
-                  {error}
-                </p>
-              )}
-
               <div className="staff-form__footer">
                 <p>Password requirements are enforced by the server.</p>
                 <div className="staff-form__actions">
@@ -288,7 +283,7 @@ export default function Staff() {
         <div className="staff-card__heading staff-list-card__heading">
           <label className="staff-search">
             <span className="visually-hidden">
-              Search staff by name or username
+              Search staff by name, email, role or status
             </span>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="10.8" cy="10.8" r="6.8" />
@@ -298,8 +293,8 @@ export default function Staff() {
               type="search"
               value={staffQuery}
               onChange={(event) => setStaffQuery(event.target.value)}
-              placeholder="Search staff or username"
-              aria-label="Search staff by name or username"
+              placeholder="Search name, email, role or status"
+              aria-label="Search staff by name, email, role or status"
             />
           </label>
         </div>
@@ -322,34 +317,46 @@ export default function Staff() {
               </thead>
 
               <tbody>
-                {filteredStaff.map((person) => {
+                {pagination.rows.map((person) => {
                   const name =
                     `${person.first_name ?? ""} ${person.last_name ?? ""}`.trim() ||
-                    person.username;
+                    person.email;
                   const isCurrentUser = person.id === user.id;
 
                   return (
                     <tr key={person.id}>
                       <td>
                         <span className="staff-table__name">{name}</span>
-                        <span className="staff-table__username">
-                          {person.username}
+                        <span className="staff-table__email">
+                          {person.email}
                         </span>
                       </td>
 
                       <td>
                         <select
                           className="staff-role-select"
-                          aria-label={`Role for ${person.username}`}
+                          aria-label={`Role for ${person.email}`}
                           value={person.role}
                           disabled={busy || isCurrentUser}
-                          onChange={(event) =>
-                            perform(() =>
-                              api.patch(`/auth/users/${person.id}/`, {
-                                role: event.target.value,
-                              }),
-                            )
-                          }
+                          onChange={(event) => {
+                            const role = event.target.value;
+                            const roleName =
+                              role === "admin" ? "Administrator" : "Presenter";
+
+                            if (
+                              window.confirm(
+                                `Change ${person.email}’s role to ${roleName}? Their permissions will change immediately.`,
+                              )
+                            ) {
+                              perform(
+                                () =>
+                                  api.patch(`/auth/users/${person.id}/`, {
+                                    role,
+                                  }),
+                                "Staff role updated.",
+                              );
+                            }
+                          }}
                         >
                           {person.role === "assistant" && (
                             <option value="assistant" disabled>
@@ -384,18 +391,62 @@ export default function Staff() {
                           }
                           type="button"
                           disabled={busy || isCurrentUser}
-                          onClick={() =>
-                            perform(() =>
-                              api.patch(`/auth/users/${person.id}/`, {
-                                is_active: !person.is_active,
-                              }),
-                            )
-                          }
+                          onClick={() => {
+                            const action = person.is_active
+                              ? "Deactivate"
+                              : "Reactivate";
+                            const details = person.is_active
+                              ? "Their access will stop. Class and note history will be kept."
+                              : "Their access will resume.";
+
+                            if (
+                              window.confirm(
+                                `${action} ${person.email}? ${details}`,
+                              )
+                            ) {
+                              perform(
+                                () =>
+                                  api.patch(`/auth/users/${person.id}/`, {
+                                    is_active: !person.is_active,
+                                  }),
+                                person.is_active
+                                  ? "Staff account deactivated. History retained."
+                                  : "Staff account reactivated.",
+                              );
+                            }
+                          }}
                         >
                           {person.is_active
                             ? "Deactivate"
-                            : "Approve / activate"}
+                            : "Reactivate / approve"}
                         </button>
+
+                        {!isCurrentUser && (
+                          <button
+                            type="button"
+                            className="staff-action-button"
+                            disabled={busy || person.can_delete === false}
+                            title={
+                              person.can_delete === false
+                                ? "Used accounts must be deactivated."
+                                : "Permanently delete an unused account"
+                            }
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Permanently delete the unused account ${person.email}? This cannot be undone.`,
+                                )
+                              ) {
+                                perform(
+                                  () => api.delete(`/auth/users/${person.id}/`),
+                                  "Unused staff account permanently deleted.",
+                                );
+                              }
+                            }}
+                          >
+                            Delete permanently
+                          </button>
+                        )}
 
                         {isCurrentUser && (
                           <span className="staff-table__self-note">You</span>
@@ -420,12 +471,14 @@ export default function Staff() {
               </h3>
               <p>
                 {staffMembers.length > 0
-                  ? "Try another name or username."
+                  ? "Try another name, email, role or status."
                   : "Add a staff account to get started."}
               </p>
             </div>
           )
         )}
+
+        <Pagination {...pagination} label="Staff table pages" disabled={busy} />
       </section>
     </main>
   );

@@ -1,0 +1,15 @@
+ frontend/src/components/Layout.jsx     |    3 [32m+[m[31m-[m
+ frontend/src/pages/Classes.css         |  802 [32m+++++++++++[m
+ frontend/src/pages/Classes.jsx         | 2346 [32m++++++++++++++++++++++++++++[m[31m----[m
+ frontend/src/pages/EmergencyLookup.css |  310 [32m+++[m[31m--[m
+ frontend/src/pages/EmergencyLookup.jsx |  416 [32m++++[m[31m--[m
+ frontend/src/pages/ProgressNotes.css   |  589 [32m+++++++[m[31m-[m
+ frontend/src/pages/ProgressNotes.jsx   |  555 [32m+++++++[m[31m-[m
+ frontend/src/pages/Registrations.css   |  482 [32m+++[m[31m----[m
+ frontend/src/pages/Registrations.jsx   |  302 [32m+++[m[31m-[m
+ frontend/src/pages/Staff.css           |  660 [32m+++++++++[m
+ frontend/src/pages/Staff.jsx           |  438 [32m+++++[m[31m-[m
+ frontend/src/pages/Students.jsx        |    2 [32m+[m[31m-[m
+ frontend/src/pages/Subjects.css        |  523 [32m+++++[m[31m--[m
+ frontend/src/pages/Subjects.jsx        |  401 [32m+++++[m[31m-[m
+ 14 files changed, 6729 insertions(+), 1100 deletions(-)

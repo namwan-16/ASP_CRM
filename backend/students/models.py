@@ -9,7 +9,9 @@ class Student(models.Model):
     year_level = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=30, blank=True)
-    subject = models.CharField(max_length=100, blank=True)
+    subject = models.CharField(max_length=150, blank=True)
+    subject_course = models.ForeignKey("classes.Course", on_delete=models.PROTECT, null=True, blank=True,
+                                       related_name="subject_students")
     permission_to_travel_alone = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
@@ -45,7 +47,7 @@ class StudentGuardian(models.Model):
 
     guardian = models.ForeignKey(
         Guardian,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="student_links",
     )
 

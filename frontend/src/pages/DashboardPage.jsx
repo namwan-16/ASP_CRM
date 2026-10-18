@@ -34,10 +34,10 @@ const adminActions = [
     icon: "reports",
   },
   {
-    title: "Emergency lookup",
-    description: "Find a student's emergency contact details.",
-    to: "/emergency-lookup",
-    icon: "emergency",
+    title: "Attendance",
+    description: "Review and record attendance for a class.",
+    to: "/attendance",
+    icon: "attendance",
   },
 ];
 
@@ -160,17 +160,20 @@ function getFirstName(user) {
     user?.first_name ||
     user?.firstName ||
     user?.name ||
-    user?.username ||
-    "there";
+    (user?.username && !user.username.includes("@") ? user.username : "");
 
-  return String(value).trim().split(/\s+/)[0] || "there";
+  if (String(value).trim()) {
+    return String(value).trim().split(/\s+/)[0];
+  }
+
+  const role = String(user?.role || user?.user_type || "").toLowerCase();
+  return role.includes("admin") ? "Administrator" : "there";
 }
 
 export default function Dashboard() {
   const { user } = useAuth();
   const isAdministrator = Boolean(user?.can_manage);
   const actions = isAdministrator ? adminActions : presenterActions;
-  const roleLabel = isAdministrator ? "Administrator" : "Presenter";
 
   return (
     <main className="dashboard-page">
@@ -178,10 +181,9 @@ export default function Dashboard() {
         <div>
           <h1>Welcome back, {getFirstName(user)}</h1>
           <p className="dashboard-page__intro">
-            Your workspace for today’s after-school program tasks.
+            Here are your most-used tools for today.
           </p>
         </div>
-
       </header>
 
       <section
@@ -192,7 +194,7 @@ export default function Dashboard() {
           <p className="dashboard-welcome__eyebrow">Your ASP workspace</p>
           <h2 id="dashboard-welcome-title">
             {isAdministrator
-              ? "Keep the program running smoothly."
+              ? "Manage your program in one place."
               : "Get ready for your classes."}
           </h2>
           <p>

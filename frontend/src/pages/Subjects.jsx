@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
+import { toast } from "react-toastify";
 import api from "../api/client";
 import { errorMessage } from "../api/crm";
 import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
+import Pagination from "../components/Pagination";
+import usePagination from "../hooks/usePagination";
 import "./Subjects.css";
 
 function getSessionSubjectId(session) {
@@ -19,8 +22,6 @@ export default function Subjects() {
   const [editingSubject, setEditingSubject] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [actionError, setActionError] = useState("");
-  const [actionMessage, setActionMessage] = useState("");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -68,19 +69,20 @@ export default function Subjects() {
     return matchesName && matchesStatus;
   });
 
+  const pagination = usePagination(
+    filteredSubjects,
+    JSON.stringify([query.trim().toLowerCase(), statusFilter]),
+  );
+
   function openAddModal() {
     setName("");
     setEditingSubject(null);
-    setActionError("");
-    setActionMessage("");
     setModalOpen(true);
   }
 
   function startEditing(subject) {
     setEditingSubject(subject);
     setName(subject.name ?? "");
-    setActionError("");
-    setActionMessage("");
     setModalOpen(true);
   }
 
@@ -90,7 +92,6 @@ export default function Subjects() {
     setModalOpen(false);
     setName("");
     setEditingSubject(null);
-    setActionError("");
   }
 
   useEffect(() => {
@@ -101,7 +102,6 @@ export default function Subjects() {
         setModalOpen(false);
         setName("");
         setEditingSubject(null);
-        setActionError("");
       }
     }
 
@@ -113,11 +113,8 @@ export default function Subjects() {
     event.preventDefault();
     const cleanName = name.trim();
 
-    setActionError("");
-    setActionMessage("");
-
     if (!cleanName) {
-      setActionError("Enter a subject name.");
+      toast.warning("Enter a subject name.");
       return;
     }
 
@@ -130,7 +127,7 @@ export default function Subjects() {
     );
 
     if (duplicate) {
-      setActionError("A subject with this name already exists.");
+      toast.warning("A subject with this name already exists.");
       return;
     }
 
@@ -141,13 +138,13 @@ export default function Subjects() {
         await api.patch(`/courses/${editingSubject.id}/`, {
           name: cleanName,
         });
-        setActionMessage("Subject updated.");
+        toast.success("Subject updated successfully.");
       } else {
         await api.post("/courses/", {
           name: cleanName,
           is_active: true,
         });
-        setActionMessage("Subject added.");
+        toast.success("Subject added successfully.");
       }
 
       setModalOpen(false);
@@ -155,7 +152,7 @@ export default function Subjects() {
       setEditingSubject(null);
       await records.refresh();
     } catch (requestError) {
-      setActionError(errorMessage(requestError));
+      toast.error(errorMessage(requestError));
     } finally {
       setSaving(false);
     }
@@ -173,8 +170,6 @@ export default function Subjects() {
 
     if (!confirmed) return;
 
-    setActionError("");
-    setActionMessage("");
     setSaving(true);
 
     try {
@@ -182,9 +177,9 @@ export default function Subjects() {
         is_active: isActive,
       });
       await records.refresh();
-      setActionMessage(`Subject ${action}d.`);
+      toast.success(`Subject ${action}d successfully.`);
     } catch (requestError) {
-      setActionError(errorMessage(requestError));
+      toast.error(errorMessage(requestError));
     } finally {
       setSaving(false);
     }
@@ -213,8 +208,7 @@ export default function Subjects() {
           type="button"
           onClick={openAddModal}
         >
-          <Plus size={17} aria-hidden="true" />
-          Add subject
+          <Plus size={17} aria-hidden="true" /> Add subject
         </button>
       </header>
 
@@ -226,19 +220,6 @@ export default function Subjects() {
           sessions.refresh();
         }}
       />
-
-      {(actionError || actionMessage) && (
-        <p
-          className={`subjects-message ${
-            actionError
-              ? "subjects-message--error"
-              : "subjects-message--success"
-          }`}
-          role={actionError ? "alert" : "status"}
-        >
-          {actionError || actionMessage}
-        </p>
-      )}
 
       <section className="subjects-summary" aria-label="Subject totals">
         <article className="subjects-summary__card">
@@ -253,18 +234,6 @@ export default function Subjects() {
       </section>
 
       <section className="subjects-panel" aria-labelledby="subjects-list-title">
-        <div className="subjects-panel__heading">
-          <div>
-            <h2 id="subjects-list-title">Subjects</h2>
-            <p>Search, review usage, and update subject availability.</p>
-          </div>
-
-          <span className="subjects-total-count">
-            {records.loading
-              ? "Loading subjects…"
-              : `${filteredSubjects.length} of ${subjects.length} subjects`}
-          </span>
-        </div>
 
         <div className="subjects-toolbar" aria-label="Subject filters">
           <label className="subjects-search">
@@ -279,7 +248,6 @@ export default function Subjects() {
           </label>
 
           <label className="subjects-filter">
-            <span>Status</span>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
@@ -314,9 +282,8 @@ export default function Subjects() {
               </thead>
 
               <tbody>
-                {filteredSubjects.map((subject) => {
+                {pagination.rows.map((subject) => {
                   const active = subject.is_active !== false;
-
                   const classCount =
                     sessionCounts.get(String(subject.id)) ??
                     sessionRecords.filter((session) => {
@@ -331,7 +298,6 @@ export default function Subjects() {
 
                       const sessionCourse =
                         session.course ?? session.course_id ?? session.courseId;
-
                       const sessionSubjectName =
                         session.course_name ??
                         (typeof sessionCourse === "object"
@@ -349,7 +315,6 @@ export default function Subjects() {
                   return (
                     <tr key={subject.id}>
                       <td className="subjects-name-cell">{subject.name}</td>
-
                       <td>
                         {sessions.loading
                           ? "Loading…"
@@ -359,7 +324,6 @@ export default function Subjects() {
                                 classCount === 1 ? "session" : "sessions"
                               }`}
                       </td>
-
                       <td>
                         <span
                           className={`subjects-status ${
@@ -371,7 +335,6 @@ export default function Subjects() {
                           {active ? "Active" : "Archived"}
                         </span>
                       </td>
-
                       <td>
                         <div className="subjects-actions">
                           <button
@@ -420,6 +383,14 @@ export default function Subjects() {
               </button>
             )}
           </div>
+        )}
+
+        {filteredSubjects.length > 0 && (
+          <Pagination
+            {...pagination}
+            label="Subject table pages"
+            disabled={saving}
+          />
         )}
       </section>
 
@@ -473,15 +444,6 @@ export default function Subjects() {
                 required
                 autoFocus
               />
-
-              {actionError && (
-                <p
-                  className="subjects-message subjects-message--error"
-                  role="alert"
-                >
-                  {actionError}
-                </p>
-              )}
 
               <div className="subjects-modal__actions">
                 <button

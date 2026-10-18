@@ -177,3 +177,8 @@
     width: 100%;
   }
 }
+
+.profile-fields { display: grid; gap: 16px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.profile-message--success { color: #12664f; background: #e9f7ef; }
+.profile-message--error { color: #982323; background: #fff0f0; }
+.profile-primary-button:disabled { opacity: .6; cursor: wait; }

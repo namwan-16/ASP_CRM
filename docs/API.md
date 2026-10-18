@@ -12,11 +12,11 @@ Base URL: `http://127.0.0.1:8000/api`. All CRM endpoints require `Authorization:
 | GET | `/auth/me/` | Current user including `can_manage` |
 | POST | `/auth/logout/` | Blacklist the authenticated user's refresh token |
 | GET, POST | `/auth/users/` | List staff / admin creates an account |
-| GET, PATCH | `/auth/users/{id}/` | View / admin changes role, profile, password or active status |
+| GET, PATCH, DELETE | `/auth/users/{id}/` | View / admin changes role or active status; delete unused accounts only |
 
-Registration accepts `username`, `first_name`, `last_name`, `email`, `password`, `password_confirm`. Staff creation accepts the same fields except `password_confirm`, plus `role` and `is_active`. Roles are `admin`, `presenter`, `assistant`; superusers are managed through Django, not through an API privilege flag.
+Login accepts `email` and `password`. Registration accepts `first_name`, `last_name`, required `email`, `password`, `password_confirm`. Staff creation accepts the same fields except `password_confirm`, plus `role` and `is_active`. Usernames are not stored or returned, and registration/staff writes reject a `username` field. Emails are normalized and unique case-insensitively. Roles are `admin`, `presenter`, `assistant`; superusers are managed through Django, not through an API privilege flag. See [EMAIL_LOGIN.md](EMAIL_LOGIN.md) for the existing-account upgrade.
 
-Staff cannot change their own role or deactivate themselves. A non-superuser admin cannot modify a superuser. Passwords are hashed and never returned. Logout revokes refresh tokens; an already-issued access token remains valid until its 15-minute expiry unless the account is deactivated.
+Only administrators can change staff roles or active status. Staff cannot change their own role or deactivate themselves; the last active administrator cannot be deactivated or demoted. A non-superuser admin cannot modify a superuser. Passwords are hashed and never returned. Logout revokes refresh tokens; an already-issued access token remains valid until its 15-minute expiry unless the account is deactivated.
 
 ## CRUD Resources
 
@@ -24,7 +24,7 @@ Collection paths support GET/list and POST/create. Detail paths support GET, PUT
 
 | Resource | Path | Important fields |
 | --- | --- | --- |
-| Students | `/students/` | `first_name`, `last_name`, `date_of_birth`, `school`, `year_level`, `subject`, `email`, `phone`, `medical_information`, `special_circumstances`, `permission_to_travel_alone`, `is_active` |
+| Students | `/students/` | `first_name`, `last_name`, `date_of_birth`, `school`, `year_level`, `subject_id`, displayed `subject` (legacy name input supported), `email`, `phone`, `medical_information`, `special_circumstances`, `permission_to_travel_alone`, `is_active` |
 | Guardians | `/guardians/` | `first_name`, `last_name`, `phone`, `email`, optional writable `links` |
 | Student/guardian links | `/student-guardians/` | `student`, `guardian`, `relationship`, `is_primary_contact`, `is_emergency_contact` |
 | Courses | `/courses/` | `name`, `description`, `is_active` |
@@ -50,7 +50,7 @@ Guardian `links` is an optional array. When supplied it replaces this guardian's
 
 The API allows one primary guardian per student. Creating a session validates positive capacity, distinct active students, appropriate active staff roles, non-overlapping room/staff assignments and end time after start time. It also creates/reactivates course registrations for its roster.
 
-Pagination returns `count`, `next`, `previous`, `results`. Use `?page=2&page_size=100`; maximum page size is 500. Supported collections expose `?search=...`. Students accept `?is_active=true`; links accept `?student=1&guardian=2`; registrations accept `?student=1&course=2`; sessions accept `?course=2`; attendance accepts `?session=1&student=2`; notes accept `?student=1`.
+Pagination returns `count`, `next`, `previous`, `results`. Default page size is 5. Use `?page=2&page_size=5`; maximum page size is 500. Supported collections expose `?search=...`. Students accept `?is_active=true`; links accept `?student=1&guardian=2`; registrations accept `?student=1&course=2`; sessions accept `?course=2`; attendance accepts `?session=1&student=2`; notes accept `?student=1`.
 
 ## Attendance and Emergency Lookup
 
@@ -114,6 +114,66 @@ Failed files return HTTP 400 with `detail` and an `errors` array containing each
 - `GET /reports/attendance/`: paginated attendance records, scoped to assigned sessions for staff.
 - Report filters: `session`, `date_from`, `date_to`, `status`.
 - `GET /reports/attendance/?export=csv`: CSV export; formula-leading cells are neutralized.
-- The frontend also summarizes live sessions, attendance and progress notes and exports the selected summary to CSV. Session-enrolment figures count places across sessions, not unique students. Attendance rates use marked attendance records; late counts as attended. Progress-note reports are not a full audit log.
+- `GET /reports/summary/` generates the frontend reports on the backend. See the new endpoints below. Progress-note reports are not a full audit log.
 
 Errors: HTTP 401 for unauthenticated access, 403 for forbidden actions, 404 for records outside the user's assignment scope, 400 for validation, 409 for protected history/conflicting records, 429 for throttling.
+
+
+## Session lifecycle and assignment
+
+`POST /sessions/` creates a class and assigns the presenter, optional assistant and student roster. `PATCH /sessions/{id}/` edits a scheduled session. Fields include `course`, `date`, `start_time`, `end_time`, `room`, `capacity`, `presenter`, `assistant` and `students`. `status` is one of `scheduled`, `cancelled`, `archived`; default `scheduled`. `status_reason` is up to 500 characters. `status_changed_at`, `status_changed_by`, `has_history` are read-only.
+
+All create/update/restore paths check date/time overlap: same room (case-insensitive), either staff member across roles, or any roster student. Cancelled/archived sessions release their booking. PostgreSQL uses a transaction advisory lock across API and Django admin writes. A session with attendance/linked notes retains its original course/date/time/room; students with history cannot be removed.
+
+- `POST /sessions/{id}/cancel/`, `/archive/`, `/restore/`: admin only; body `{"reason":"Optional explanation"}`. Closed sessions are read-only. Restore runs normal schedule/resource validation. Failed restores do not change the status or audit history.
+- `GET /sessions/{id}/status-history/`: assigned staff/admin; transitions with previous/new status, reason, actor and timestamp. No write/delete endpoint.
+- `DELETE /sessions/{id}/`: always HTTP 409 for admins; use cancel/archive, including sessions without attendance history.
+- `GET /sessions/?status=scheduled&course=1&presenter=2`: optional filters; staff see assigned sessions only.
+- Attendance POST/PATCH/bulk saves and progress-note writes/deletion reject cancelled/archived sessions with HTTP 400. Reads remain available to assigned staff.
+
+## Emergency lookup
+
+`GET /emergency-lookup/?search=Ava%20Example&page=1&page_size=5`: paginated student summaries (ID, first/last name, year, active flag). Empty searches return zero rows. Numeric searches or `ASP-123` match exact student IDs. Name tokens match first/last names; query is limited to 100 characters. Assignment permissions are applied before searching. No guardian/medical data in search results.
+
+`GET /students/{id}/emergency-contacts/`: selected student's details and emergency-enabled guardians, ordered primary first. Records outside assignment scope return 404.
+
+## Generated reports and class lists
+
+`GET /reports/summary/?kind=attendance` returns `{kind,count,next,previous,results,columns,stats,definition}`. `columns` contains display/export keys and labels; statistics cover all filtered results. Pagination uses `page` and `page_size`. Kinds: `attendance`, `late-arrivals`, `enrolment`, `progress-notes`. Filters: `date_from`, `date_to`, `course`, `presenter`. Reversed/invalid dates return 400. All queries use the caller's assignment scope.
+
+Append `export=csv` to export all filtered rows, with UTF-8 BOM and spreadsheet formula neutralization. Attendance/enrolment exclude cancelled sessions and include archived history. Progress-note date filters use note dates; other report dates use session dates. Percentages use recorded marks including excused; unmarked roster places are separately counted. Enrolment counts session places rather than unique students.
+
+`GET /sessions/{id}/class-list/`: session details, column definitions and roster rows with each student's latest note on/before the session date. Note visibility follows the caller's assigned-session scope. Structured React progress notes are converted to readable text. Append `export=csv` for CSV. The frontend print view safely inserts text and allows browser printing/Save as PDF.
+
+## Self-service profile
+
+- `GET /auth/me/`: current profile.
+- `PATCH /auth/me/`: only `first_name`, `last_name`, `email`. Unsupported fields, invalid emails and another user's email (case-insensitive) return 400. The response updates the React auth context immediately.
+- `POST /auth/change-password/`: `current_password`, `new_password`, `new_password_confirm`. Checks current password, matching confirmation and Django password validators. On success, all refresh tokens are blacklisted and password-aware JWT validation invalidates old access tokens. Response requests sign-in again. Auth throttle applies.
+
+
+## History-safe deletion and recovery
+
+Response-only `can_delete` is exposed on students, guardians, subjects and administrator staff listings. It helps the UI explain eligibility. Every deletion still performs backend checks against current references; passing a fake flag does not authorize deletion.
+
+| Resource | Normal removal | Permanent deletion |
+| --- | --- | --- |
+| Student | `POST /students/{id}/deactivate/`, `/reactivate/` or admin PATCH `is_active` | Administrator only; HTTP 409 if any enrolment, roster, attendance or progress note exists, including deleted notes |
+| Guardian | Admin edits details or replaces `links`; DELETE the specific `/student-guardians/{id}/` to unlink one student | Administrator only; HTTP 409 if any student link remains; database protection also prevents cascading deletion |
+| Subject | Admin PATCH `/courses/{id}/` with `is_active: false` to archive, `true` to reactivate | Administrator only; HTTP 409 if any student subject reference, enrolment or session uses it |
+| Staff | Admin PATCH `/auth/users/{id}/` with `is_active` | Administrator only; unused accounts without login/token use or class/note/audit references; self-deletion and superuser deletion are blocked |
+| Enrolment | Admin PATCH `/registrations/{id}/` with `is_active: false` to pause, `true` to resume | HTTP 409; retain enrolment history. Student/course cannot change on an existing enrolment |
+| Session | Cancel/archive; restore to resume | HTTP 409; retain sessions |
+| Progress note | Edit to correct; DELETE performs recoverable deletion | No API hard-delete path; only administrator or note author can delete/restore |
+
+Presenters may edit all notes in their assignment scope, preserving the original author. Assistants retain the existing own-note edit rule. Notes outside assignment scope return 404. Closed sessions remain read-only. Deleting a note sets read-only `is_deleted`, `deleted_at`, `deleted_by` and stores an audit event; it does not remove the note row or its protected student/session references.
+
+- `GET /progress-notes/?is_deleted=false` (default): current notes.
+- `GET /progress-notes/?is_deleted=true`: recoverable notes; administrators see scoped records and presenters/assistants see only their own.
+- `POST /progress-notes/{id}/restore/`: administrator or original author; same assignment and closed-session rules.
+- `GET /progress-notes/{id}/history/`: edit/create/delete/restore events with actor, date and text snapshot. For a deleted note, append `?is_deleted=true`. Edit events store the prior version. History is read-only.
+- Recoverably deleted notes are excluded from reports, dashboard note totals and latest-note class lists.
+
+`PATCH /students/{id}/` accepts numeric `subject_id` from `/courses/`, or `null` to clear. The response's displayed `subject` follows the referenced name. New selections require an active subject. Existing archived selections may be retained while editing another field. Legacy `subject` name input and imports resolve to an active existing subject; unknown/new archived choices return 400.
+
+`Guardian.students` returns link records containing `id`, `student`, `name`, `relationship`, `is_primary_contact` and `is_emergency_contact`. `phone` is the persisted phone field. Frontend-only business/address/attachment fields are not supported by this API.

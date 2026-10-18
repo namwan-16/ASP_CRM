@@ -15,8 +15,8 @@ from .models import Guardian, Student, StudentGuardian
 
 class StudentApiTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user("admin", role="admin")
-        self.assistant = User.objects.create_user("assistant")
+        self.admin = User.objects.create_user("admin@example.test", role="admin")
+        self.assistant = User.objects.create_user("assistant@example.test")
         self.client.force_authenticate(self.admin)
 
     def student(self, **values):
@@ -87,7 +87,7 @@ class StudentApiTests(APITestCase):
 class ImportApiTests(APITestCase):
     def setUp(self):
         cache.clear()
-        self.admin = User.objects.create_user("admin", role="admin")
+        self.admin = User.objects.create_user("admin@example.test", role="admin")
         self.client.force_authenticate(self.admin)
         self.row = {"first_name": "Ava", "last_name": "Example", "date_of_birth": "2013-01-15", "school": "Old School",
                     "guardian_first_name": "Sarah", "guardian_last_name": "Example", "guardian_phone": "0400 000 001", "relationship": "Mother"}
@@ -184,10 +184,40 @@ class ImportApiTests(APITestCase):
         response = self.client.get("/api/students/import-template/")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b"PK"))
-        self.client.force_authenticate(User.objects.create_user("assistant"))
+        self.client.force_authenticate(User.objects.create_user("assistant@example.test"))
         self.assertEqual(self.upload([self.row]).status_code, 403)
 
     def test_import_requests_are_throttled(self):
         for _ in range(10):
             self.assertEqual(self.upload([self.row], dry_run=True).status_code, 200)
         self.assertEqual(self.upload([self.row], dry_run=True).status_code, 429)
+
+
+class EmergencyLookupApiTests(APITestCase):
+    def setUp(self):
+        from classes.models import ClassSession, Course
+        self.presenter = User.objects.create_user("emergency-presenter@example.test", role="presenter")
+        self.outsider = User.objects.create_user("emergency-outsider@example.test", role="presenter")
+        self.student = Student.objects.create(first_name="Ava", last_name="Example", date_of_birth="2013-01-15", medical_information="Allergy information")
+        guardian = Guardian.objects.create(first_name="Parent", last_name="Example", phone="0400000001")
+        StudentGuardian.objects.create(student=self.student, guardian=guardian, relationship="Mother", is_primary_contact=True, is_emergency_contact=True)
+        self.session = ClassSession.objects.create(course=Course.objects.create(name="Emergency class"), date="2026-10-10", start_time="16:00", end_time="17:00", room="One", presenter=self.presenter)
+        self.session.students.add(self.student)
+        self.client.force_authenticate(self.presenter)
+
+    def test_name_id_search_and_selected_contacts(self):
+        for search in ("Ava Example", f"ASP-{self.student.pk}", str(self.student.pk)):
+            r = self.client.get("/api/emergency-lookup/", {"search": search})
+            self.assertEqual(r.status_code, 200, r.data); self.assertEqual(r.data["count"], 1)
+            self.assertNotIn("medical_information", r.data["results"][0])
+        r = self.client.get(f"/api/students/{self.student.pk}/emergency-contacts/")
+        self.assertEqual(r.data["contacts"][0]["guardian_details"]["phone"], "0400000001")
+        self.assertEqual(r.data["student"]["medical_information"], "Allergy information")
+        self.assertEqual(self.client.get("/api/emergency-lookup/").data["count"], 0)
+
+    def test_unassigned_and_unauthenticated_access(self):
+        self.client.force_authenticate(self.outsider)
+        self.assertEqual(self.client.get("/api/emergency-lookup/?search=Ava").data["count"], 0)
+        self.assertEqual(self.client.get(f"/api/students/{self.student.pk}/emergency-contacts/").status_code, 404)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get("/api/emergency-lookup/?search=Ava").status_code, 401)

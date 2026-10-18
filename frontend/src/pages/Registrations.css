@@ -29,7 +29,7 @@
 .registrations-heading h1 {
   margin: 0;
   color: var(--color-primary);
-  font-size: clamp(28px, 3vw, 38px);
+  font-size: clamp(25px, 3vw, 18px);
   line-height: 1.2;
 }
 
@@ -359,5 +359,140 @@
 
   .registrations-upload-actions button {
     width: 100%;
+  }
+}
+
+.registrations-message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.registrations-message__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.registrations-message > button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.registrations-message > button:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.registrations-message > button:focus-visible {
+  outline: 3px solid rgba(34, 125, 113, 0.25);
+  outline-offset: 2px;
+}
+
+.registrations-pagination {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.registrations-pagination .crm-pagination {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.registrations-pagination .crm-pagination__summary {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.registrations-pagination .crm-pagination__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.registrations-pagination .crm-pagination__controls span {
+  min-width: 90px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.registrations-pagination .crm-pagination__controls button {
+  min-width: 82px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.registrations-pagination
+  .crm-pagination__controls
+  button:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.registrations-pagination .crm-pagination__controls button:disabled {
+  color: #98a2b3;
+  background: #f7f8fa;
+  cursor: not-allowed;
+}
+
+.registrations-pagination .crm-pagination__controls button:focus-visible {
+  outline: 3px solid rgba(34, 125, 113, 0.25);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .registrations-pagination {
+    padding: 14px;
+  }
+
+  .registrations-pagination .crm-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .registrations-pagination .crm-pagination__controls {
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .registrations-pagination .crm-pagination__controls button {
+    transition: none;
   }
 }

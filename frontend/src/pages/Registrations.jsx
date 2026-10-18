@@ -5,6 +5,9 @@ import { download, errorMessage } from "../api/crm";
 import { useAuth } from "../context/AuthContext";
 import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
+import Pagination from "../components/Pagination";
+import usePagination from "../hooks/usePagination";
+import { notify } from "../utils/notifications";
 
 function formatFileSize(bytes) {
   if (!Number.isFinite(bytes)) return "";
@@ -21,20 +24,21 @@ export default function Registrations() {
   const fileInputRef = useRef(null);
   const { user } = useAuth();
   const students = useRecords("/students/");
+
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [errors, setErrors] = useState([]);
-  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const errorPages = usePagination(errors, file?.name || "");
+
   async function perform(operation) {
-    setError("");
     setBusy(true);
 
     try {
       await operation();
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      notify.error(errorMessage(requestError));
     } finally {
       setBusy(false);
     }
@@ -45,17 +49,15 @@ export default function Registrations() {
     setFile(selectedFile);
     setResult(null);
     setErrors([]);
-    setError("");
   }
 
   async function upload(dryRun) {
     if (!file) {
-      setError("Choose a CSV or Excel file first.");
+      notify.warning("Choose a CSV or Excel file first.");
       return;
     }
 
     setBusy(true);
-    setError("");
     setErrors([]);
     setResult(null);
 
@@ -65,21 +67,44 @@ export default function Registrations() {
 
     try {
       const response = await api.post("/students/import/", formData);
-      setResult(response.data);
+      const importResult = response.data;
 
-      if (!dryRun) {
+      setResult(importResult);
+
+      const created = importResult.created ?? 0;
+      const updated = importResult.updated ?? 0;
+
+      if (dryRun) {
+        notify.success(
+          `Preview complete: ${created} new and ${updated} updated students. No records have been saved.`,
+        );
+      } else {
+        notify.success(
+          `Import complete: ${created} new and ${updated} updated students.`,
+        );
         students.refresh();
         setFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
     } catch (requestError) {
       const responseData = requestError.response?.data;
-      setErrors(responseData?.errors || []);
-      setError(
+      const rowErrors = Array.isArray(responseData?.errors)
+        ? responseData.errors
+        : [];
+
+      setErrors(rowErrors);
+
+      const message =
         typeof responseData?.detail === "string"
           ? responseData.detail
-          : errorMessage(requestError),
-      );
+          : rowErrors.length
+            ? "The file has validation errors. Review the details below."
+            : errorMessage(requestError);
+
+      notify.error(message);
     } finally {
       setBusy(false);
     }
@@ -89,15 +114,17 @@ export default function Registrations() {
     setFile(null);
     setResult(null);
     setErrors([]);
-    setError("");
-    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   }
 
   return (
     <main className="registrations-page">
       <header className="registrations-heading">
         <div>
-          <h1>Student Registration Import</h1>
+          <h1>Student Registrations</h1>
           <p className="registrations-description">
             Upload and validate registration files before importing student
             records.
@@ -128,7 +155,7 @@ export default function Registrations() {
               <h2 id="registration-upload-title">
                 Import student registrations
               </h2>
-              <p>Select a file to validate its contents before importing. </p>
+              <p>Select a file to validate its contents before importing.</p>
             </div>
 
             <button
@@ -181,15 +208,6 @@ export default function Registrations() {
             />
           </div>
 
-          {error && (
-            <p
-              className="registrations-message registrations-message--error"
-              role="alert"
-            >
-              {error}
-            </p>
-          )}
-
           {result && (
             <div
               className={`registrations-message ${
@@ -199,20 +217,31 @@ export default function Registrations() {
               }`}
               role="status"
             >
-              <strong>
-                {result.dry_run ? "Preview complete" : "Import complete"}
-              </strong>
-              <span>
-                {result.created ?? 0} new students · {result.updated ?? 0}{" "}
-                updated students.
-                {result.dry_run && " No records have been saved yet."}
-              </span>
+              <div className="registrations-message__copy">
+                <strong>
+                  {result.dry_run ? "Preview complete" : "Import complete"}
+                </strong>
+                <span>
+                  {result.created ?? 0} new students · {result.updated ?? 0}{" "}
+                  updated students.
+                  {result.dry_run && " No records have been saved yet."}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                aria-label="Dismiss import result"
+                onClick={() => setResult(null)}
+              >
+                ×
+              </button>
             </div>
           )}
 
           {errors.length > 0 && (
             <div className="registrations-errors">
               <h3>Validation errors</h3>
+
               <div className="registrations-table-wrap">
                 <table className="registrations-table registrations-errors-table">
                   <thead>
@@ -221,8 +250,9 @@ export default function Registrations() {
                       <th scope="col">Issue</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {errors.map((row, index) => (
+                    {errorPages.rows.map((row, index) => (
                       <tr key={`${row.row ?? "error"}-${index}`}>
                         <td>{row.row ?? "—"}</td>
                         <td>{getRowErrorMessage(row)}</td>
@@ -230,6 +260,15 @@ export default function Registrations() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="registrations-pagination">
+                <Pagination
+                  {...errorPages}
+                  label="Import error table pages"
+                  itemLabel="errors"
+                  disabled={busy}
+                />
               </div>
             </div>
           )}
