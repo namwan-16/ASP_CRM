@@ -80,7 +80,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import secureLoginIllustration from "../assets/secure login.svg";
 import "./LoginPage.css";
-
+import { LogIn, Eye, EyeOff, User, Lock } from "lucide-react";
 function BrandMark() {
   return (
     <svg
@@ -253,10 +253,13 @@ export default function LoginPage() {
               disabled={submitting}
               aria-busy={submitting}
             >
-              {submitting ? "Signing in…" : "Sign in"}
+              {submitting ? "Signing in…" : <>Sign in  <LogIn size={18} /> </>}
+              
             </button>
           </form>
-
+          <div className="login-page__divider">
+            <span>OR</span>
+          </div>
           <p className="login-page__help">
             Forgot your password?{" "}
             <a href="mailto:afterschoolprogram@murdoch.edu.au?subject=ASP%20CRM%20login%20assistance">
