@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import "./Staff.css";
 import api from "../api/client";
 import { errorMessage } from "../api/crm";
@@ -18,6 +19,7 @@ const emptyForm = {
 };
 
 export default function Staff() {
+  const location = useLocation();
   const { user } = useAuth();
   const records = useRecords("/auth/users/");
   const [form, setForm] = useState(emptyForm);
@@ -25,12 +27,27 @@ export default function Staff() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [staffQuery, setStaffQuery] = useState("");
 
+  useEffect(() => {
+    const globalSearch = location.state?.globalSearch;
+    if (typeof globalSearch === "string" && globalSearch.trim()) {
+      setStaffQuery(globalSearch);
+    }
+  }, [location.key]);
+
   const staffMembers = Array.isArray(records.data) ? records.data : [];
   const normalizedStaffQuery = staffQuery.trim().toLowerCase();
 
   const filteredStaff = staffMembers.filter((person) => {
-    const fullName = `${person.first_name ?? ""} ${person.last_name ?? ""}`;
-    const searchableText = `${fullName} ${person.email ?? ""}`.toLowerCase();
+    const fullName =
+      `${person.first_name ?? ""} ${person.last_name ?? ""}`.trim();
+    const role = person.role === "admin" ? "administrator admin" : person.role;
+    const accountStatus = person.is_active
+      ? "active"
+      : "inactive awaiting approval";
+
+    const searchableText =
+      `${fullName} ${person.email ?? ""} ${role ?? ""} ${accountStatus}`.toLowerCase();
+
     return searchableText.includes(normalizedStaffQuery);
   });
 
@@ -266,7 +283,7 @@ export default function Staff() {
         <div className="staff-card__heading staff-list-card__heading">
           <label className="staff-search">
             <span className="visually-hidden">
-              Search staff by name or email
+              Search staff by name, email, role or status
             </span>
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="10.8" cy="10.8" r="6.8" />
@@ -276,8 +293,8 @@ export default function Staff() {
               type="search"
               value={staffQuery}
               onChange={(event) => setStaffQuery(event.target.value)}
-              placeholder="Search staff or email"
-              aria-label="Search staff by name or email"
+              placeholder="Search name, email, role or status"
+              aria-label="Search staff by name, email, role or status"
             />
           </label>
         </div>
@@ -454,7 +471,7 @@ export default function Staff() {
               </h3>
               <p>
                 {staffMembers.length > 0
-                  ? "Try another name or email."
+                  ? "Try another name, email, role or status."
                   : "Add a staff account to get started."}
               </p>
             </div>

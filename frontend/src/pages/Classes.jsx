@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./Classes.css";
 import api from "../api/client";
 import { download, errorMessage, sessionRecord } from "../api/crm";
@@ -28,9 +28,7 @@ function dateAfter(days) {
 function getStatus(session) {
   if (session.status === "cancelled") return "Cancelled";
   if (session.status === "archived") return "Archived";
-
   const today = localDateString(new Date());
-
   if (session.date < today) return "Completed";
   if (session.date === today) return "Today";
   return "Upcoming";
@@ -38,9 +36,7 @@ function getStatus(session) {
 
 function formatDate(value) {
   if (!value) return "—";
-
   const [year, month, day] = value.split("-").map(Number);
-
   return new Intl.DateTimeFormat("en-AU", {
     weekday: "short",
     day: "numeric",
@@ -51,16 +47,13 @@ function formatDate(value) {
 
 function formatTime(value) {
   if (!value) return "—";
-
   const [hours, minutes] = value.split(":").map(Number);
   const suffix = hours >= 12 ? "pm" : "am";
-
   return `${hours % 12 || 12}:${String(minutes).padStart(2, "0")}${suffix}`;
 }
 
 function parseLocalDate(value) {
   if (!value) return new Date();
-
   const parts = value.split("-").map(Number);
   return new Date(parts[0], parts[1] - 1, parts[2], 12);
 }
@@ -82,7 +75,6 @@ function startOfWeek(date) {
 function getMonthCalendarDates(date) {
   const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1, 12);
   const firstCell = startOfWeek(firstOfMonth);
-
   return Array.from({ length: 42 }, (_, index) => shiftDate(firstCell, index));
 }
 
@@ -96,18 +88,15 @@ function formatCalendarHeading(date, view) {
 
   const start = startOfWeek(date);
   const end = shiftDate(start, 6);
-
   const startLabel = new Intl.DateTimeFormat("en-AU", {
     day: "numeric",
     month: "short",
   }).format(start);
-
   const endLabel = new Intl.DateTimeFormat("en-AU", {
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(end);
-
   return `${startLabel} – ${endLabel}`;
 }
 
@@ -130,7 +119,6 @@ function CalendarView({
       : getMonthCalendarDates(anchorDate);
 
   const today = localDateString(new Date());
-
   const weekDays = [
     "Monday",
     "Tuesday",
@@ -158,7 +146,6 @@ function CalendarView({
           >
             ‹
           </button>
-
           <button
             type="button"
             className="classes-calendar__today-button"
@@ -166,7 +153,6 @@ function CalendarView({
           >
             Today
           </button>
-
           <button
             type="button"
             className="classes-calendar__nav-button"
@@ -175,12 +161,10 @@ function CalendarView({
           >
             ›
           </button>
-
           <h3 className="classes-calendar__title">
             {formatCalendarHeading(anchorDate, view)}
           </h3>
         </div>
-
         <div
           className="classes-calendar__view-toggle"
           role="group"
@@ -194,7 +178,6 @@ function CalendarView({
           >
             Week
           </button>
-
           <button
             type="button"
             aria-pressed={view === "month"}
@@ -224,7 +207,6 @@ function CalendarView({
                   <span>{weekDays[index]}</span>
                   <strong>{date.getDate()}</strong>
                 </header>
-
                 <div className="classes-calendar__day-sessions">
                   {daySessions.length ? (
                     daySessions.map((session) => (
@@ -249,7 +231,6 @@ function CalendarView({
                     <p className="classes-calendar__empty-day">No sessions</p>
                   )}
                 </div>
-
                 {canManage && (
                   <button
                     type="button"
@@ -270,7 +251,6 @@ function CalendarView({
               <span key={day}>{day.slice(0, 3)}</span>
             ))}
           </div>
-
           <div
             className="classes-calendar__month"
             aria-label="Monthly schedule"
@@ -291,7 +271,6 @@ function CalendarView({
                 >
                   <div className="classes-calendar__month-date">
                     <span>{date.getDate()}</span>
-
                     {canManage && (
                       <button
                         type="button"
@@ -302,7 +281,6 @@ function CalendarView({
                       </button>
                     )}
                   </div>
-
                   <div className="classes-calendar__month-events">
                     {daySessions.map((session) => (
                       <button
@@ -352,20 +330,17 @@ function findScheduleConflict(form, sessions, editingSessionId) {
       }
 
       const reasons = [];
-
       if (
         staffIds.includes(Number(session.presenterId)) ||
         (session.assistantId && staffIds.includes(Number(session.assistantId)))
       ) {
         reasons.push("staff are already assigned");
       }
-
       if (
         session.room.trim().toLowerCase() === form.room.trim().toLowerCase()
       ) {
         reasons.push("the room is already booked");
       }
-
       if (session.studentIds.some((id) => studentIds.has(Number(id)))) {
         reasons.push("a selected student is already scheduled");
       }
@@ -410,7 +385,6 @@ function ClassForm({
           studentIds: [],
         },
   );
-
   const [saving, setSaving] = useState(false);
 
   function updateField(event) {
@@ -439,19 +413,16 @@ function ClassForm({
       notify.warning("Complete the subject, date, room and presenter fields.");
       return;
     }
-
     if (form.endTime <= form.startTime) {
       notify.warning("The end time must be later than the start time.");
       return;
     }
 
     const capacity = Number(form.capacity);
-
     if (!Number.isInteger(capacity) || capacity < 1) {
       notify.warning("Enter a capacity of at least one student.");
       return;
     }
-
     if (form.studentIds.length > capacity) {
       notify.warning(
         "The selected student count cannot exceed the class capacity.",
@@ -460,7 +431,6 @@ function ClassForm({
     }
 
     const conflict = findScheduleConflict(form, sessions, classItem?.id);
-
     if (conflict) {
       notify.warning(
         `This session overlaps with ${conflict.course} (${formatTime(
@@ -473,7 +443,6 @@ function ClassForm({
     }
 
     setSaving(true);
-
     try {
       await onSave({ ...form, capacity });
     } catch (requestError) {
@@ -504,7 +473,6 @@ function ClassForm({
               {classItem ? "Edit class" : "Create a class"}
             </h2>
           </div>
-
           <button
             className="classes-icon-button"
             type="button"
@@ -516,7 +484,6 @@ function ClassForm({
             </svg>
           </button>
         </div>
-
         <form className="classes-form" onSubmit={handleSubmit}>
           <label>
             Subject
@@ -536,7 +503,6 @@ function ClassForm({
                 ))}
             </select>
           </label>
-
           <div className="classes-form__row">
             <label>
               Class date
@@ -548,7 +514,6 @@ function ClassForm({
                 required
               />
             </label>
-
             <label>
               Room
               <input
@@ -560,7 +525,6 @@ function ClassForm({
               />
             </label>
           </div>
-
           <div className="classes-form__row">
             <label>
               Start time
@@ -572,7 +536,6 @@ function ClassForm({
                 required
               />
             </label>
-
             <label>
               End time
               <input
@@ -584,7 +547,6 @@ function ClassForm({
               />
             </label>
           </div>
-
           <div className="classes-form__row">
             <label>
               Presenter
@@ -611,7 +573,6 @@ function ClassForm({
                   ))}
               </select>
             </label>
-
             <label>
               Assistant (optional)
               <select
@@ -636,7 +597,6 @@ function ClassForm({
               </select>
             </label>
           </div>
-
           <label>
             Class capacity
             <input
@@ -648,14 +608,12 @@ function ClassForm({
               required
             />
           </label>
-
           <fieldset className="classes-student-picker">
             <legend>Assign registered students</legend>
             <p>
               Select students for this session. Saving also enrols them in the
               subject.
             </p>
-
             <div className="classes-student-picker__list">
               {students
                 .filter(
@@ -679,12 +637,10 @@ function ClassForm({
                   </label>
                 ))}
             </div>
-
             <span className="classes-student-picker__count">
               {form.studentIds.length} selected · Capacity {form.capacity || 0}
             </span>
           </fieldset>
-
           <div className="classes-form__actions">
             <button
               className="classes-secondary-button"
@@ -693,7 +649,6 @@ function ClassForm({
             >
               Cancel
             </button>
-
             <button
               className="classes-primary-button"
               type="submit"
@@ -719,20 +674,17 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
 
   useEffect(() => {
     const controller = new AbortController();
-
     api
       .get(`/sessions/${classItem.id}/status-history/`, {
         signal: controller.signal,
       })
       .then(({ data }) => setHistory(data))
       .catch(() => {});
-
     return () => controller.abort();
   }, [classItem.id]);
 
   async function run(action) {
     setBusy(true);
-
     try {
       await action();
     } catch (requestError) {
@@ -769,7 +721,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             <p className="classes-eyebrow">CLASS DETAILS · {classItem.id}</p>
             <h2 id="class-details-title">{classItem.course}</h2>
           </div>
-
           <button
             className="classes-icon-button"
             type="button"
@@ -781,7 +732,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             </svg>
           </button>
         </div>
-
         <dl className="classes-details">
           <div>
             <dt>Date and time</dt>
@@ -790,17 +740,14 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
               {formatTime(classItem.endTime)}
             </dd>
           </div>
-
           <div>
             <dt>Room</dt>
             <dd>{classItem.room}</dd>
           </div>
-
           <div>
             <dt>Presenter</dt>
             <dd>{classItem.presenter}</dd>
           </div>
-
           <div>
             <dt>Enrolment</dt>
             <dd>
@@ -808,7 +755,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             </dd>
           </div>
         </dl>
-
         <p
           className={`classes-status classes-status--${getStatus(
             classItem,
@@ -816,26 +762,22 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
         >
           {getStatus(classItem)}
         </p>
-
         {classItem.assistant && (
           <p>
             <strong>Assistant:</strong> {classItem.assistant}
           </p>
         )}
-
         {classItem.status_reason && (
           <p>
             <strong>Reason:</strong> {classItem.status_reason}
           </p>
         )}
-
         {classItem.has_history && (
           <p className="classes-history-hint">
             This session has recorded history. Its original date, time, room and
             subject are retained.
           </p>
         )}
-
         <div className="classes-form__actions">
           {classItem.status === "scheduled" && (
             <Link
@@ -845,7 +787,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
               Take attendance
             </Link>
           )}
-
           <button
             type="button"
             className="classes-secondary-button"
@@ -854,7 +795,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
           >
             Print class list
           </button>
-
           <button
             type="button"
             className="classes-secondary-button"
@@ -871,13 +811,11 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             Export class list
           </button>
         </div>
-
         <section
           className="classes-roster"
           aria-labelledby="classes-roster-title"
         >
           <h3 id="classes-roster-title">Enrolled students</h3>
-
           {enrolledStudents.length ? (
             <ul>
               {enrolledStudents.map((student) => (
@@ -893,7 +831,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             <p>No students have been assigned to this class yet.</p>
           )}
         </section>
-
         {onStatus && (
           <section className="classes-status-controls">
             <label>
@@ -905,12 +842,10 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
                 disabled={busy}
               />
             </label>
-
             <p>
               Cancel or archive to retain the roster, attendance and notes. Both
               release the booking and make its history read-only.
             </p>
-
             <div className="classes-form__actions">
               {classItem.status === "scheduled" && (
                 <button
@@ -922,7 +857,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
                   Cancel session
                 </button>
               )}
-
               {classItem.status !== "archived" && (
                 <button
                   className="classes-secondary-button"
@@ -933,7 +867,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
                   Archive session
                 </button>
               )}
-
               {classItem.status !== "scheduled" && (
                 <button
                   className="classes-primary-button"
@@ -947,7 +880,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             </div>
           </section>
         )}
-
         {history.length > 0 && (
           <details className="classes-status-controls">
             <summary>Status history</summary>
@@ -963,7 +895,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
             </ul>
           </details>
         )}
-
         <div className="classes-form__actions">
           <button
             className="classes-secondary-button"
@@ -972,7 +903,6 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
           >
             Close
           </button>
-
           {onEdit && (
             <button
               className="classes-primary-button"
@@ -989,26 +919,23 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
 }
 
 export default function Classes() {
+  const location = useLocation();
   const records = useRecords("/sessions/");
   const courseRecords = useRecords("/courses/");
   const staffRecords = useRecords("/auth/users/");
   const studentRecords = useRecords("/students/");
-
   const classes = useMemo(
     () => (Array.isArray(records.data) ? records.data : []).map(sessionRecord),
     [records.data],
   );
-
   const coursesFromApi = useMemo(
     () => (Array.isArray(courseRecords.data) ? courseRecords.data : []),
     [courseRecords.data],
   );
-
   const staff = useMemo(
     () => (Array.isArray(staffRecords.data) ? staffRecords.data : []),
     [staffRecords.data],
   );
-
   const students = useMemo(
     () =>
       (Array.isArray(studentRecords.data) ? studentRecords.data : []).map(
@@ -1021,11 +948,17 @@ export default function Classes() {
       ),
     [studentRecords.data],
   );
-
   const { user } = useAuth();
   const canManage = user?.can_manage;
-
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    const globalSearch = location.state?.globalSearch;
+    if (typeof globalSearch === "string" && globalSearch.trim()) {
+      setQuery(globalSearch);
+    }
+  }, [location.key]);
+
   const [courseFilter, setCourseFilter] = useState("All subjects");
   const [presenterFilter, setPresenterFilter] = useState("All presenters");
   const [dateFilter, setDateFilter] = useState("");
@@ -1040,11 +973,9 @@ export default function Classes() {
   const [calendarDate, setCalendarDate] = useState(() =>
     parseLocalDate(localDateString(new Date())),
   );
-
   const courseOptions = Array.isArray(courseRecords.data)
     ? courseRecords.data
     : [];
-
   const courses = useMemo(
     () =>
       [
@@ -1055,7 +986,6 @@ export default function Classes() {
       ].sort(),
     [courseOptions, classes],
   );
-
   const presenters = useMemo(
     () =>
       [...new Set(classes.map((item) => item.presenter).filter(Boolean))].sort(
@@ -1063,7 +993,6 @@ export default function Classes() {
       ),
     [classes],
   );
-
   const filteredClasses = useMemo(() => {
     const search = query.trim().toLowerCase();
 
@@ -1073,20 +1002,27 @@ export default function Classes() {
           .filter((student) => item.studentIds.includes(student.id))
           .map((student) => student.name)
           .join(" ");
-
         const matchesSearch =
           !search ||
-          [item.course, item.room, item.presenter, studentText].some((value) =>
-            value.toLowerCase().includes(search),
+          [
+            item.course,
+            item.room,
+            item.presenter,
+            item.date,
+            item.startTime,
+            item.endTime,
+            item.id,
+            studentText,
+          ].some((value) =>
+            String(value ?? "")
+              .toLowerCase()
+              .includes(search),
           );
-
         const matchesCourse =
           courseFilter === "All subjects" || item.course === courseFilter;
-
         const matchesPresenter =
           presenterFilter === "All presenters" ||
           item.presenter === presenterFilter;
-
         const matchesDate = !dateFilter || item.date === dateFilter;
         const status = getStatus(item);
         const matchesStatus =
@@ -1121,7 +1057,6 @@ export default function Classes() {
 
   const totalPages = Math.max(1, Math.ceil(filteredClasses.length / PAGE_SIZE));
   const displayedPage = Math.min(currentPage, totalPages);
-
   const pageClasses = filteredClasses.slice(
     (displayedPage - 1) * PAGE_SIZE,
     displayedPage * PAGE_SIZE,
@@ -1150,7 +1085,6 @@ export default function Classes() {
     setDialogOpen(false);
     setEditingClass(null);
     setInitialClassDate("");
-
     notify.success(
       editingClass ? "Class session updated." : "Class session created.",
     );
@@ -1167,7 +1101,6 @@ export default function Classes() {
       if (calendarView === "week") {
         return shiftDate(current, direction * 7);
       }
-
       return new Date(
         current.getFullYear(),
         current.getMonth() + direction,
@@ -1193,6 +1126,15 @@ export default function Classes() {
 
   return (
     <main className="classes-page">
+      <header className="classes-page__heading">
+        <div>
+          <h1>Classes &amp; Sessions</h1>
+          <p className="classes-page__description">
+            View class schedules, presenters and student enrolments.
+          </p>
+        </div>
+      </header>
+
       <RequestState
         loading={
           records.loading ||
@@ -1301,11 +1243,6 @@ export default function Classes() {
 
       <section className="classes-panel" aria-labelledby="classes-list-title">
         <div className="classes-panel__heading">
-          <div>
-            <h2 id="classes-list-title">Classes and sessions</h2>
-            <p>Manage schedules, staff assignments and student enrolments.</p>
-          </div>
-
           <div
             className="classes-display-toggle"
             role="group"
@@ -1319,7 +1256,6 @@ export default function Classes() {
             >
               Table
             </button>
-
             <button
               type="button"
               aria-pressed={displayMode === "calendar"}
@@ -1329,32 +1265,6 @@ export default function Classes() {
               Calendar
             </button>
           </div>
-        </div>
-
-        <div className="classes-results" aria-live="polite">
-          <span>
-            Showing {filteredClasses.length} of {classes.length} classes
-          </span>
-
-          {(query ||
-            courseFilter !== "All subjects" ||
-            presenterFilter !== "All presenters" ||
-            dateFilter ||
-            statusFilter !== "All classes") && (
-            <button
-              type="button"
-              className="classes-clear-button"
-              onClick={clearFilters}
-            >
-              Clear filters
-            </button>
-          )}
-
-          {displayMode === "table" && (
-            <span className="classes-scroll-hint">
-              Scroll horizontally to view all columns
-            </span>
-          )}
         </div>
 
         {displayMode === "calendar" ? (
@@ -1393,7 +1303,6 @@ export default function Classes() {
                     </th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {pageClasses.map((item) => {
                     const status = getStatus(item);
@@ -1406,7 +1315,6 @@ export default function Classes() {
                           </span>
                           <span className="classes-id">{item.id}</span>
                         </td>
-
                         <td>
                           {formatDate(item.date)}
                           <span className="classes-cell-subtext">
@@ -1414,10 +1322,8 @@ export default function Classes() {
                             {formatTime(item.endTime)}
                           </span>
                         </td>
-
                         <td>{item.room}</td>
                         <td>{item.presenter}</td>
-
                         <td>
                           <span className="classes-enrolment-count">
                             {item.studentIds.length}
@@ -1426,7 +1332,6 @@ export default function Classes() {
                             of {item.capacity} capacity
                           </span>
                         </td>
-
                         <td>
                           <span
                             className={`classes-status classes-status--${status.toLowerCase()}`}
@@ -1434,7 +1339,6 @@ export default function Classes() {
                             {status}
                           </span>
                         </td>
-
                         <td className="classes-row-actions">
                           <button
                             className="classes-view-button"
@@ -1443,7 +1347,6 @@ export default function Classes() {
                           >
                             View
                           </button>
-
                           {canManage && item.status === "scheduled" && (
                             <button
                               className="classes-edit-button"
@@ -1460,16 +1363,13 @@ export default function Classes() {
                 </tbody>
               </table>
             </div>
-
-            <div className="classes-pagination">
-              <Pagination
-                page={displayedPage}
-                setPage={setCurrentPage}
-                total={filteredClasses.length}
-                label="Class table pages"
-                itemLabel="classes"
-              />
-            </div>
+            <Pagination
+              page={displayedPage}
+              setPage={setCurrentPage}
+              total={filteredClasses.length}
+              label="Class table pages"
+              itemLabel="classes"
+            />
           </>
         ) : (
           <div className="classes-empty-state">
@@ -1521,9 +1421,7 @@ export default function Classes() {
                   await api.post(`/sessions/${selectedClass.id}/${action}/`, {
                     reason,
                   });
-
                   setSelectedClass(null);
-
                   notify.success(
                     action === "restore"
                       ? "Class session resumed. Roster and history retained."
@@ -1531,7 +1429,6 @@ export default function Classes() {
                         ? "Class session archived. Roster and history retained."
                         : "Class session cancelled. History retained.",
                   );
-
                   records.refresh();
                 }
               : null

@@ -34,10 +34,10 @@ const adminActions = [
     icon: "reports",
   },
   {
-    title: "Emergency lookup",
-    description: "Find a student's emergency contact details.",
-    to: "/emergency-lookup",
-    icon: "emergency",
+    title: "Attendance",
+    description: "Review and record attendance for a class.",
+    to: "/attendance",
+    icon: "attendance",
   },
 ];
 
@@ -174,7 +174,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const isAdministrator = Boolean(user?.can_manage);
   const actions = isAdministrator ? adminActions : presenterActions;
-  const roleLabel = isAdministrator ? "Administrator" : "Presenter";
 
   return (
     <main className="dashboard-page">
@@ -182,7 +181,7 @@ export default function Dashboard() {
         <div>
           <h1>Welcome back, {getFirstName(user)}</h1>
           <p className="dashboard-page__intro">
-            Your workspace for today’s after-school program tasks.
+            Here are your most-used tools for today.
           </p>
         </div>
       </header>
@@ -195,7 +194,7 @@ export default function Dashboard() {
           <p className="dashboard-welcome__eyebrow">Your ASP workspace</p>
           <h2 id="dashboard-welcome-title">
             {isAdministrator
-              ? "Keep the program running smoothly."
+              ? "Manage your program in one place."
               : "Get ready for your classes."}
           </h2>
           <p>

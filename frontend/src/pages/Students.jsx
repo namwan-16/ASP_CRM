@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import "./Students.css";
 import api from "../api/client";
 import { errorMessage, studentRecord } from "../api/crm";
@@ -18,9 +19,23 @@ function SearchIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
 function displayValue(value) {
   return value === null || value === undefined || value === ""
     ? "Not recorded"
+    : value;
+}
+
+function tableValue(value) {
+  return value === null || value === undefined || String(value).trim() === ""
+    ? "—"
     : value;
 }
 
@@ -28,18 +43,13 @@ function permissionChoice(value) {
   return value === true || value === 1 || value === "Yes" ? "Yes" : "No";
 }
 
-function StudentDetailsDialog({
-  student,
-  onClose,
-  onEdit,
-  onDelete,
-  onToggleActive,
-}) {
+function StudentDetailsDialog({ student, onClose, onDelete, onToggleActive }) {
   if (!student) return null;
 
   return (
     <div
       className="students-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -57,6 +67,15 @@ function StudentDetailsDialog({
               {student.firstName} {student.lastName}
             </h2>
           </div>
+
+          <button
+            className="students-icon-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close student details"
+          >
+            <CloseIcon />
+          </button>
         </div>
 
         <h3 className="students-details__section-title">Student information</h3>
@@ -85,6 +104,17 @@ function StudentDetailsDialog({
             <dd>{displayValue(student.subject)}</dd>
           </div>
           <div>
+            <dt>Status</dt>
+            <dd>{student.is_active ? "Active" : "Inactive"}</dd>
+          </div>
+        </dl>
+
+        <h3 className="students-details__section-title">
+          Contact and guardian
+        </h3>
+
+        <dl className="students-details">
+          <div>
             <dt>Guardian</dt>
             <dd>{displayValue(student.guardian)}</dd>
           </div>
@@ -100,13 +130,16 @@ function StudentDetailsDialog({
             <dt>Phone</dt>
             <dd>{displayValue(student.phone ?? student.mobilePhone)}</dd>
           </div>
+        </dl>
+
+        <h3 className="students-details__section-title">
+          Additional information
+        </h3>
+
+        <dl className="students-details">
           <div>
             <dt>Permission to travel alone</dt>
             <dd>{permissionChoice(student.permissionToTravelAlone)}</dd>
-          </div>
-          <div>
-            <dt>Status</dt>
-            <dd>{displayValue(student.status)}</dd>
           </div>
           <div>
             <dt>Medical information</dt>
@@ -211,6 +244,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
   return (
     <div
       className="students-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -227,6 +261,16 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
               {student ? "Edit student" : "Add student"}
             </h2>
           </div>
+
+          <button
+            className="students-icon-button"
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label={`Close ${student ? "edit student" : "add student"} dialog`}
+          >
+            <CloseIcon />
+          </button>
         </div>
 
         <form className="students-form" onSubmit={handleSubmit}>
@@ -275,7 +319,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
               </label>
 
               <label>
-                Year level
+                Level
                 <select
                   name="level"
                   value={formData.level}
@@ -452,6 +496,7 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
 }
 
 export default function Students() {
+  const location = useLocation();
   const records = useRecords("/students/");
   const guardianRecords = useRecords("/guardians/");
   const subjectRecords = useRecords("/courses/");
@@ -475,6 +520,13 @@ export default function Students() {
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  useEffect(() => {
+    const globalSearch = location.state?.globalSearch;
+    if (typeof globalSearch === "string" && globalSearch.trim()) {
+      setSearch(globalSearch);
+    }
+  }, [location.key]);
 
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -667,7 +719,7 @@ export default function Students() {
         <div>
           <h1>Student Records</h1>
           <p className="students-page__description">
-            View and manage student records.
+            Search, review and update student information.
           </p>
         </div>
 
@@ -728,7 +780,7 @@ export default function Students() {
             <select
               value={levelFilter}
               onChange={(event) => setLevelFilter(event.target.value)}
-              aria-label="Filter by level"
+              aria-label="Filter by year level"
             >
               <option>All levels</option>
               {levelOptions.map((level) => (
@@ -774,15 +826,6 @@ export default function Students() {
           )}
         </div>
 
-        <div className="students-results" aria-live="polite">
-          <span>
-            <strong>{filteredStudents.length}</strong>{" "}
-            {filteredStudents.length === 1
-              ? "matching student"
-              : "matching students"}
-          </span>
-        </div>
-
         {filteredStudents.length > 0 ? (
           <>
             <div
@@ -798,8 +841,8 @@ export default function Students() {
                     <th scope="col">Student</th>
                     <th scope="col">Level</th>
                     <th scope="col">Subject</th>
-                    <th scope="col">Phone</th>
-                    <th scope="col">Email</th>
+                    <th scope="col">Primary guardian</th>
+                    <th scope="col">Status</th>
                     <th scope="col" className="student-row-action">
                       Actions
                     </th>
@@ -810,19 +853,27 @@ export default function Students() {
                   {pagination.rows.map((student) => (
                     <tr key={student.apiId ?? student.id}>
                       <td className="student-id">
-                        {displayValue(student.studentId ?? student.id)}
+                        {tableValue(student.studentId ?? student.id)}
                       </td>
                       <td>
                         <span className="student-name">
                           {student.firstName} {student.lastName}
                         </span>
                       </td>
-                      <td>{displayValue(student.level)}</td>
-                      <td>{displayValue(student.subject)}</td>
+                      <td>{tableValue(student.level)}</td>
+                      <td>{tableValue(student.subject)}</td>
+                      <td>{tableValue(student.guardian)}</td>
                       <td>
-                        {displayValue(student.mobilePhone ?? student.phone)}
+                        <span
+                          className={`students-status ${
+                            student.is_active
+                              ? "students-status--active"
+                              : "students-status--inactive"
+                          }`}
+                        >
+                          {student.is_active ? "Active" : "Inactive"}
+                        </span>
                       </td>
-                      <td>{displayValue(student.email)}</td>
                       <td className="student-row-action">
                         <div className="students-row-actions">
                           <button
@@ -851,14 +902,6 @@ export default function Students() {
                 </tbody>
               </table>
             </div>
-
-            <div className="students-pagination">
-              <Pagination
-                {...pagination}
-                label="Student table pages"
-                itemLabel="students"
-              />
-            </div>
           </>
         ) : (
           <div className="students-empty-state">
@@ -866,6 +909,11 @@ export default function Students() {
             <p>Try changing your search or filters.</p>
           </div>
         )}
+        <Pagination
+          {...pagination}
+          label="Student table pages"
+          itemLabel="students"
+        />
       </section>
 
       {showForm && canManage && (
@@ -885,7 +933,6 @@ export default function Students() {
         <StudentDetailsDialog
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
-          onEdit={canManage ? () => openEditForm(selectedStudent) : null}
           onDelete={canManage ? handleDeleteStudent : null}
           onToggleActive={canManage ? toggleStudentActive : null}
         />

@@ -10,29 +10,22 @@ import usePagination from "../hooks/usePagination";
 import { notify } from "../utils/notifications";
 
 const emptyGuardian = {
-  company: "",
   firstName: "",
   lastName: "",
   email: "",
-  jobTitle: "",
-  businessPhone: "",
-  homePhone: "",
-  mobilePhone: "",
-  faxNumber: "",
-  address: "",
-  city: "",
-  stateProvince: "",
-  postalCode: "",
-  countryRegion: "",
-  webPage: "",
-  notes: "",
-  attachments: [],
-  studentLinks: [],
+  phone: "",
+  studentIds: [],
 };
 
 function displayValue(value) {
   return value === null || value === undefined || value === ""
     ? "Not recorded"
+    : value;
+}
+
+function tableValue(value) {
+  return value === null || value === undefined || String(value).trim() === ""
+    ? "—"
     : value;
 }
 
@@ -49,7 +42,7 @@ function SearchIcon() {
   );
 }
 
-function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
+function GuardianDetailsDialog({ guardian, onClose, onDelete }) {
   if (!guardian) return null;
 
   const studentLinks = Array.isArray(guardian.studentLinks)
@@ -64,6 +57,7 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
   return (
     <div
       className="guardians-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -91,12 +85,8 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
               <dd>
                 {label === "Email Address" && value ? (
                   <a href={`mailto:${value}`}>{value}</a>
-                ) : label.includes("Phone") && value ? (
+                ) : label === "Mobile Phone" && value ? (
                   <a href={phoneLink(value)}>{value}</a>
-                ) : label === "Web Page" && value ? (
-                  <a href={value} target="_blank" rel="noreferrer">
-                    {value}
-                  </a>
                 ) : (
                   displayValue(value)
                 )}
@@ -131,16 +121,6 @@ function GuardianDetailsDialog({ guardian, onClose, onEdit, onDelete }) {
         )}
 
         <div className="guardians-form__actions">
-          {onEdit && (
-            <button
-              className="guardians-secondary-button"
-              type="button"
-              onClick={onEdit}
-            >
-              Edit
-            </button>
-          )}
-
           {onDelete && (
             <button
               className="guardians-secondary-button"
@@ -176,10 +156,8 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
     ...emptyGuardian,
     firstName: guardian?.firstName || "",
     lastName: guardian?.lastName || "",
-    relationship: guardianStudentLinks[0]?.relationship || "Guardian",
     phone: guardian?.phone || guardian?.mobilePhone || "",
     email: guardian?.email || "",
-    notes: guardian?.notes || "",
     studentIds: guardianStudentLinks
       .map((link) => link.studentId ?? link.student)
       .filter((id) => id !== undefined && id !== null),
@@ -219,9 +197,10 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
     setSaving(true);
 
     try {
-      const removed = guardianStudentLinks.filter(
-        (link) => !formData.studentIds.includes(link.studentId),
-      );
+      const removed = guardianStudentLinks.filter((link) => {
+        const linkedStudentId = link.studentId ?? link.student;
+        return !formData.studentIds.includes(linkedStudentId);
+      });
 
       if (
         removed.length &&
@@ -252,6 +231,7 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
   return (
     <div
       className="guardians-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -266,7 +246,7 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
         <div className="guardians-dialog__heading">
           <div>
             <p className="guardians-dialog__eyebrow">Guardian records</p>
-            <h2 id="add-guardian-title">
+            <h2 id="guardian-form-title">
               {guardian ? "Edit guardian" : "Add guardian"}
             </h2>
           </div>
@@ -283,7 +263,6 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
-                placeholder="Enter first name"
                 autoComplete="given-name"
                 required
               />
@@ -295,7 +274,6 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
-                placeholder="Enter last name"
                 autoComplete="family-name"
                 required
               />
@@ -411,6 +389,7 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
               className="guardians-secondary-button"
               type="button"
               onClick={onClose}
+              disabled={saving}
             >
               Cancel
             </button>
@@ -499,7 +478,9 @@ export default function Guardians() {
       ];
 
       return searchableValues.some((value) =>
-        value?.toLowerCase().includes(query),
+        String(value ?? "")
+          .toLowerCase()
+          .includes(query),
       );
     });
   }, [guardians, search]);
@@ -514,16 +495,16 @@ export default function Guardians() {
 
   async function handleAddGuardian(guardian) {
     const data = {
-      first_name: guardian.firstName,
-      last_name: guardian.lastName,
-      phone: guardian.phone || guardian.mobilePhone,
-      email: guardian.email,
+      first_name: guardian.firstName.trim(),
+      last_name: guardian.lastName.trim(),
+      phone: guardian.phone.trim(),
+      email: guardian.email.trim(),
       links: guardian.studentIds.map((student) => {
         const existing = guardian.linkFlags?.[student];
 
         return {
           student,
-          relationship: existing?.relationship || "Guardian",
+          relationship: existing?.relationship?.trim() || "Guardian",
           is_primary_contact: existing?.is_primary_contact || false,
           is_emergency_contact: existing?.is_emergency_contact ?? true,
         };
@@ -618,13 +599,6 @@ export default function Guardians() {
           </label>
         </div>
 
-        <div className="guardians-results">
-          <span>
-            Showing <strong>{filteredGuardians.length}</strong> of{" "}
-            <strong>{guardians.length}</strong> guardians
-          </span>
-        </div>
-
         {filteredGuardians.length > 0 ? (
           <div
             className="guardians-table-wrap"
@@ -638,9 +612,9 @@ export default function Guardians() {
                   <th scope="col">Guardian</th>
                   <th scope="col">Linked student(s)</th>
                   <th scope="col">Mobile phone</th>
-                  <th scope="col">Email</th>
+                  <th scope="col">Email address</th>
                   <th scope="col" className="guardian-row-action">
-                    Action
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -675,7 +649,7 @@ export default function Guardians() {
                           {guardian.mobilePhone}
                         </a>
                       ) : (
-                        "Not recorded"
+                        tableValue(guardian.mobilePhone)
                       )}
                     </td>
 
@@ -685,7 +659,7 @@ export default function Guardians() {
                           {guardian.email}
                         </a>
                       ) : (
-                        "Not recorded"
+                        tableValue(guardian.email)
                       )}
                     </td>
 
@@ -727,7 +701,10 @@ export default function Guardians() {
 
       {showAddDialog && (
         <AddGuardianDialog
-          onClose={() => setShowAddDialog(false)}
+          onClose={() => {
+            setShowAddDialog(false);
+            setEditingGuardian(null);
+          }}
           onAdd={handleAddGuardian}
           students={students}
           guardian={editingGuardian}
@@ -738,15 +715,6 @@ export default function Guardians() {
         <GuardianDetailsDialog
           guardian={selectedGuardian}
           onClose={() => setSelectedGuardian(null)}
-          onEdit={
-            canManage
-              ? () => {
-                  setEditingGuardian(selectedGuardian);
-                  setSelectedGuardian(null);
-                  setShowAddDialog(true);
-                }
-              : null
-          }
           onDelete={canManage ? deleteGuardian : null}
         />
       )}

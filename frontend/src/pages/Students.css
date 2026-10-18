@@ -81,8 +81,7 @@
 .students-filter select:focus-visible,
 .students-form input:focus-visible,
 .students-form select:focus-visible,
-.students-table-wrap:focus-visible,
-.crm-pagination__controls button:focus-visible {
+.students-table-wrap:focus-visible {
   outline: 3px solid rgba(15, 118, 110, 0.3);
   outline-offset: 2px;
 }
@@ -195,7 +194,7 @@
   width: 100%;
   min-width: 0;
   overflow-x: auto;
-  padding: 0 20px 20px;
+  padding: 0 20px;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: #aebbc7 #f1f4f7;
@@ -306,81 +305,6 @@
   margin: 0;
   color: var(--color-muted);
   font-size: 14px;
-}
-
-/* Student table pagination */
-.students-pagination {
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border);
-  background: var(--color-surface);
-}
-
-.students-pagination .crm-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-}
-
-.students-pagination .crm-pagination__summary {
-  color: var(--color-muted);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.students-pagination .crm-pagination__controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.students-pagination .crm-pagination__controls span {
-  min-width: 90px;
-  color: var(--color-text);
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.students-pagination .crm-pagination__controls button {
-  min-width: 82px;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 9px;
-  color: var(--color-primary);
-  background: var(--color-surface);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    border-color 150ms ease,
-    background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.students-pagination .crm-pagination__controls button:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-}
-
-.students-pagination .crm-pagination__controls button:disabled {
-  color: #98a2b3;
-  background: #f7f8fa;
-  cursor: not-allowed;
-  opacity: 0.75;
-}
-
-.students-pagination .crm-pagination__controls button:focus-visible {
-  outline: 3px solid rgba(15, 118, 110, 0.25);
-  outline-offset: 2px;
 }
 
 /* Add and view dialogs */
@@ -622,24 +546,11 @@
     padding-right: 16px;
     padding-left: 16px;
   }
-
-  .students-pagination {
-    padding: 14px 16px;
-  }
 }
 
 @media (max-width: 600px) {
   .students-form__grid {
     grid-template-columns: 1fr;
-  }
-
-  .students-pagination .crm-pagination {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .students-pagination .crm-pagination__controls {
-    justify-content: space-between;
   }
 }
 
@@ -690,26 +601,11 @@
   .students-form__actions button {
     width: 100%;
   }
-
-  .students-pagination .crm-pagination__controls {
-    gap: 6px;
-  }
-
-  .students-pagination .crm-pagination__controls button {
-    min-width: 72px;
-    padding: 0 8px;
-  }
-
-  .students-pagination .crm-pagination__controls span {
-    min-width: 76px;
-    font-size: 12px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .students-primary-button,
-  .students-secondary-button,
-  .students-pagination .crm-pagination__controls button {
+  .students-secondary-button {
     transition: none;
   }
 }

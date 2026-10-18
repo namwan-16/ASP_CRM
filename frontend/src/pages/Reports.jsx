@@ -242,9 +242,6 @@ export default function Reports() {
             {!report.results.length && (
               <p className="rp-empty">No results for these filters.</p>
             )}
-          </div>
-
-          <div className="rp-pagination">
             <Pagination
               page={page}
               setPage={setPage}
