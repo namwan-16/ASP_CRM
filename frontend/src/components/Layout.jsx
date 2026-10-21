@@ -446,7 +446,7 @@ export default function Layout() {
                       <span>{label}</span>
                     </NavLink>
 
-                    {(administrator || user?.role === "presenter") && (
+                    {administrator && (
                       <button
                         className="crm-nav-group__toggle"
                         type="button"
@@ -478,30 +478,27 @@ export default function Layout() {
                     )}
                   </div>
 
-                  {(administrator || user?.role === "presenter") &&
-                    classesExpanded && (
-                      <NavLink
-                        to="/subjects"
-                        title={collapsed ? "Manage subjects" : undefined}
-                        className={({ isActive }) =>
-                          `crm-nav-link crm-nav-sub-link${
-                            isActive ? " crm-nav-link-active" : ""
-                          }`
-                        }
-                        style={{
-                          paddingLeft: collapsed ? undefined : "2.75rem",
-                        }}
-                        onClick={closeMobileSidebar}
-                      >
-                        <MenuBookOutlined
-                          className="crm-menu-icon"
-                          aria-hidden="true"
-                        />
-                        <span>
-                          {administrator ? "Manage subjects" : "Class subjects"}
-                        </span>
-                      </NavLink>
-                    )}
+                  {administrator && classesExpanded && (
+                    <NavLink
+                      to="/subjects"
+                      title={collapsed ? "Manage subjects" : undefined}
+                      className={({ isActive }) =>
+                        `crm-nav-link crm-nav-sub-link${
+                          isActive ? " crm-nav-link-active" : ""
+                        }`
+                      }
+                      style={{
+                        paddingLeft: collapsed ? undefined : "2.75rem",
+                      }}
+                      onClick={closeMobileSidebar}
+                    >
+                      <MenuBookOutlined
+                        className="crm-menu-icon"
+                        aria-hidden="true"
+                      />
+                      <span>Manage subjects</span>
+                    </NavLink>
+                  )}
                 </div>
               );
             }
@@ -652,7 +649,9 @@ export default function Layout() {
                 </span>
                 <ExpandMoreOutlined
                   sx={{ fontSize: 16 }}
-                  className={`crm-header-avatar__chevron${profileOpen ? " is-open" : ""}`}
+                  className={`crm-header-avatar__chevron${
+                    profileOpen ? " is-open" : ""
+                  }`}
                   aria-hidden="true"
                 />
               </button>

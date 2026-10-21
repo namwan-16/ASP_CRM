@@ -8,6 +8,7 @@ import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import usePagination from "../hooks/usePagination";
 import { notify } from "../utils/notifications";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const emptyGuardian = {
   firstName: "",
@@ -64,7 +65,6 @@ function GuardianDetailsDialog({ guardian, onClose, onDelete }) {
     >
       <section
         className="guardians-dialog"
-        style={{ maxHeight: "calc(100vh - 2rem)", overflowY: "auto" }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="guardian-details-title"
@@ -164,6 +164,7 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
   }));
 
   const [saving, setSaving] = useState(false);
+  const [pendingLinkRemoval, setPendingLinkRemoval] = useState(null);
 
   const [linkFlags, setLinkFlags] = useState(() =>
     Object.fromEntries(
@@ -192,30 +193,12 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
     });
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
+  async function saveGuardian(payload) {
     setSaving(true);
 
     try {
-      const removed = guardianStudentLinks.filter((link) => {
-        const linkedStudentId = link.studentId ?? link.student;
-        return !formData.studentIds.includes(linkedStudentId);
-      });
-
-      if (
-        removed.length &&
-        !window.confirm(
-          `Remove this guardian’s contact links for ${removed
-            .map((link) => link.studentName)
-            .join(
-              ", ",
-            )}? Other student links and the guardian record will be kept.`,
-        )
-      ) {
-        return;
-      }
-
-      await onAdd({ ...formData, linkFlags });
+      await onAdd(payload);
+      setPendingLinkRemoval(null);
     } catch (requestError) {
       notify.error(errorMessage(requestError));
     } finally {
@@ -223,192 +206,245 @@ function AddGuardianDialog({ onClose, onAdd, students, guardian }) {
     }
   }
 
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const payload = { ...formData, linkFlags };
+    const removed = guardianStudentLinks.filter((link) => {
+      const linkedStudentId = link.studentId ?? link.student;
+      return !formData.studentIds.includes(linkedStudentId);
+    });
+
+    if (removed.length) {
+      setPendingLinkRemoval({ links: removed, payload });
+      return;
+    }
+
+    await saveGuardian(payload);
+  }
+
   const textFields = [
     ["email", "Email address", "email"],
     ["phone", "Phone number", "tel"],
   ];
 
+  const removedStudentNames =
+    pendingLinkRemoval?.links
+      .map((link) => link.studentName)
+      .filter(Boolean)
+      .join(", ") || "the selected students";
+
   return (
-    <div
-      className="guardians-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className="guardians-dialog guardians-dialog--form"
-        style={{ maxHeight: "calc(100vh - 2rem)", overflowY: "auto" }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="guardian-form-title"
+    <>
+      <div
+        className="guardians-dialog-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !saving) onClose();
+        }}
       >
-        <div className="guardians-dialog__heading">
-          <div>
-            <p className="guardians-dialog__eyebrow">Guardian records</p>
-            <h2 id="guardian-form-title">
-              {guardian ? "Edit guardian" : "Add guardian"}
-            </h2>
-          </div>
-        </div>
-
-        <form className="guardians-form" onSubmit={handleSubmit}>
-          <h3>Guardian details</h3>
-
-          <div className="guardians-form__row">
-            <label>
-              First name
-              <input
-                autoFocus
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                autoComplete="given-name"
-                required
-              />
-            </label>
-
-            <label>
-              Last name
-              <input
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                autoComplete="family-name"
-                required
-              />
-            </label>
+        <section
+          className="guardians-dialog guardians-dialog--form"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="guardian-form-title"
+        >
+          <div className="guardians-dialog__heading">
+            <div>
+              <p className="guardians-dialog__eyebrow">Guardian records</p>
+              <h2 id="guardian-form-title">
+                {guardian ? "Edit guardian" : "Add guardian"}
+              </h2>
+            </div>
           </div>
 
-          <div className="guardians-form__row">
-            {textFields.map(([name, label, type]) => (
-              <label key={name}>
-                {label}
+          <form className="guardians-form" onSubmit={handleSubmit}>
+            <h3>Guardian details</h3>
+
+            <div className="guardians-form__row">
+              <label>
+                First name
                 <input
-                  type={type}
-                  name={name}
-                  value={formData[name]}
+                  autoFocus
+                  name="firstName"
+                  value={formData.firstName}
                   onChange={handleChange}
-                  required={name === "phone"}
+                  autoComplete="given-name"
+                  required
                 />
               </label>
-            ))}
-          </div>
 
-          <fieldset className="guardians-student-fieldset">
-            <legend>Student links</legend>
-            <p>
-              Choose the students linked to this guardian, then record the
-              relationship and emergency-contact status for each student.
-            </p>
+              <label>
+                Last name
+                <input
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  autoComplete="family-name"
+                  required
+                />
+              </label>
+            </div>
 
-            <div className="guardians-student-options">
-              {students.map((student) => (
-                <label key={student.id}>
+            <div className="guardians-form__row">
+              {textFields.map(([name, label, type]) => (
+                <label key={name}>
+                  {label}
                   <input
-                    type="checkbox"
-                    checked={formData.studentIds.includes(student.id)}
-                    onChange={() => handleStudentToggle(student.id)}
+                    type={type}
+                    name={name}
+                    value={formData[name]}
+                    onChange={handleChange}
+                    required={name === "phone"}
                   />
-                  <span>
-                    {student.first_name} {student.last_name} (ASP-{student.id})
-                  </span>
                 </label>
               ))}
             </div>
 
-            {students
-              .filter((student) => formData.studentIds.includes(student.id))
-              .map((student) => (
-                <div className="crm-inline-actions" key={`flags-${student.id}`}>
-                  <span>
-                    {student.first_name} {student.last_name}
-                  </span>
+            <fieldset className="guardians-student-fieldset">
+              <legend>Student links</legend>
+              <p>
+                Choose the students linked to this guardian, then record the
+                relationship and emergency-contact status for each student.
+              </p>
 
-                  <label>
-                    Relationship
-                    <input
-                      value={linkFlags[student.id]?.relationship || "Guardian"}
-                      required
-                      maxLength={50}
-                      onChange={(event) =>
-                        setLinkFlags((current) => ({
-                          ...current,
-                          [student.id]: {
-                            ...current[student.id],
-                            relationship: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </label>
+              <div className="guardians-student-options">
+                {students.map((student) => {
+                  const selected = formData.studentIds.includes(student.id);
 
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={
-                        linkFlags[student.id]?.is_primary_contact || false
-                      }
-                      onChange={(event) =>
-                        setLinkFlags((current) => ({
-                          ...current,
-                          [student.id]: {
-                            ...current[student.id],
-                            is_primary_contact: event.target.checked,
-                          },
-                        }))
-                      }
-                    />
-                    Primary contact
-                  </label>
+                  return (
+                    <div
+                      className={`guardians-student-option${
+                        selected ? " guardians-student-option--selected" : ""
+                      }`}
+                      key={student.id}
+                    >
+                      <label className="guardians-student-option__choice">
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => handleStudentToggle(student.id)}
+                        />
+                        <span>
+                          {student.first_name} {student.last_name} (ASP-
+                          {student.id})
+                        </span>
+                      </label>
 
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={
-                        linkFlags[student.id]?.is_emergency_contact ?? true
-                      }
-                      onChange={(event) =>
-                        setLinkFlags((current) => ({
-                          ...current,
-                          [student.id]: {
-                            ...current[student.id],
-                            is_emergency_contact: event.target.checked,
-                          },
-                        }))
-                      }
-                    />
-                    Emergency contact
-                  </label>
-                </div>
-              ))}
-          </fieldset>
+                      {selected && (
+                        <div className="guardians-student-link-fields">
+                          <label>
+                            Relationship
+                            <input
+                              value={
+                                linkFlags[student.id]?.relationship ??
+                                "Guardian"
+                              }
+                              required
+                              maxLength={50}
+                              onChange={(event) =>
+                                setLinkFlags((current) => ({
+                                  ...current,
+                                  [student.id]: {
+                                    ...current[student.id],
+                                    relationship: event.target.value,
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
 
-          <div className="guardians-form__actions">
-            <button
-              className="guardians-secondary-button"
-              type="button"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
+                          <label className="guardians-emergency-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={
+                                linkFlags[student.id]?.is_primary_contact ||
+                                false
+                              }
+                              onChange={(event) =>
+                                setLinkFlags((current) => ({
+                                  ...current,
+                                  [student.id]: {
+                                    ...current[student.id],
+                                    is_primary_contact: event.target.checked,
+                                  },
+                                }))
+                              }
+                            />
+                            <span>Primary contact</span>
+                          </label>
 
-            <button
-              className="guardians-primary-button"
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? "Saving..."
-                : guardian
-                  ? "Save changes"
-                  : "Add guardian"}
-            </button>
-          </div>
-        </form>
-      </section>
-    </div>
+                          <label className="guardians-emergency-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={
+                                linkFlags[student.id]?.is_emergency_contact ??
+                                true
+                              }
+                              onChange={(event) =>
+                                setLinkFlags((current) => ({
+                                  ...current,
+                                  [student.id]: {
+                                    ...current[student.id],
+                                    is_emergency_contact: event.target.checked,
+                                  },
+                                }))
+                              }
+                            />
+                            <span>Emergency contact</span>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <div className="guardians-form__actions">
+              <button
+                className="guardians-secondary-button"
+                type="button"
+                onClick={onClose}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="guardians-primary-button"
+                type="submit"
+                disabled={saving}
+              >
+                {saving
+                  ? "Saving..."
+                  : guardian
+                    ? "Save changes"
+                    : "Add guardian"}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingLinkRemoval)}
+        title="Remove student links?"
+        message={`Remove this guardian’s contact links for ${removedStudentNames}? Other student links and the guardian record will be kept.`}
+        confirmLabel="Remove links and save"
+        cancelLabel="Cancel"
+        variant="danger"
+        busy={saving}
+        onConfirm={() => {
+          if (pendingLinkRemoval) {
+            saveGuardian(pendingLinkRemoval.payload);
+          }
+        }}
+        onCancel={() => {
+          if (!saving) setPendingLinkRemoval(null);
+        }}
+      />
+    </>
   );
 }
 
@@ -440,6 +476,8 @@ export default function Guardians() {
   const [editingGuardian, setEditingGuardian] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedGuardian, setSelectedGuardian] = useState(null);
+  const [guardianToDelete, setGuardianToDelete] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const students = Array.isArray(studentRecords.data)
     ? studentRecords.data
@@ -530,22 +568,27 @@ export default function Guardians() {
     setEditingGuardian(null);
   }
 
+  function requestGuardianDelete() {
+    if (!selectedGuardian) return;
+
+    setGuardianToDelete(selectedGuardian);
+  }
+
   async function deleteGuardian() {
-    if (
-      !window.confirm(
-        `Permanently delete the unused guardian ${selectedGuardian.firstName} ${selectedGuardian.lastName}? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    if (!guardianToDelete) return;
+
+    setDeleteBusy(true);
 
     try {
-      await api.delete(`/guardians/${selectedGuardian.id}/`);
+      await api.delete(`/guardians/${guardianToDelete.id}/`);
       setSelectedGuardian(null);
+      setGuardianToDelete(null);
       records.refresh();
       notify.success("Unused guardian permanently deleted.");
     } catch (requestError) {
       notify.error(errorMessage(requestError));
+    } finally {
+      setDeleteBusy(false);
     }
   }
 
@@ -629,18 +672,26 @@ export default function Guardians() {
                     </td>
 
                     <td className="guardian-students">
-                      {guardian.studentLinks.length
-                        ? guardian.studentLinks
-                            .map(
-                              (link) =>
-                                `${link.studentName} (${link.relationship || "Relationship not recorded"}${
-                                  link.emergencyContact
-                                    ? ", emergency contact"
-                                    : ""
-                                })`,
-                            )
-                            .join("; ")
-                        : "No students linked"}
+                      {guardian.studentLinks.length ? (
+                        <ul className="guardian-student-list">
+                          {guardian.studentLinks.map((link) => (
+                            <li
+                              key={
+                                link.id ??
+                                link.studentId ??
+                                link.student ??
+                                link.studentName
+                              }
+                            >
+                              {link.studentName || "Unnamed student"}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="guardian-students__empty">
+                          No students linked
+                        </span>
+                      )}
                     </td>
 
                     <td>
@@ -715,9 +766,27 @@ export default function Guardians() {
         <GuardianDetailsDialog
           guardian={selectedGuardian}
           onClose={() => setSelectedGuardian(null)}
-          onDelete={canManage ? deleteGuardian : null}
+          onDelete={canManage ? requestGuardianDelete : null}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(guardianToDelete)}
+        title="Delete guardian permanently?"
+        message={
+          guardianToDelete
+            ? `Permanently delete the unused guardian ${guardianToDelete.firstName} ${guardianToDelete.lastName}? This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete permanently"
+        cancelLabel="Cancel"
+        variant="danger"
+        busy={deleteBusy}
+        onConfirm={deleteGuardian}
+        onCancel={() => {
+          if (!deleteBusy) setGuardianToDelete(null);
+        }}
+      />
     </main>
   );
 }

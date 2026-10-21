@@ -9,6 +9,7 @@ import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import usePagination from "../hooks/usePagination";
 import { notify } from "../utils/notifications";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function SearchIcon() {
   return (
@@ -62,7 +63,7 @@ function StudentDetailsDialog({ student, onClose, onDelete, onToggleActive }) {
       >
         <div className="students-dialog__heading">
           <div>
-            <p className="students-page__eyebrow">Student record</p>
+            <p className="students-dialog__eyebrow">Student details</p>
             <h2 id="student-details-title">
               {student.firstName} {student.lastName}
             </h2>
@@ -257,9 +258,13 @@ function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
       >
         <div className="students-dialog__heading">
           <div>
+            <p className="students-dialog__eyebrow">
+              {student ? "Update student record" : "New student record"}
+            </p>
             <h2 id="student-form-title">
-              {student ? "Edit student" : "Add student"}
+              {student ? "Edit student details" : "Add a student"}
             </h2>
+            
           </div>
 
           <button
@@ -520,6 +525,8 @@ export default function Students() {
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [pendingStudentAction, setPendingStudentAction] = useState(null);
+  const [studentActionBusy, setStudentActionBusy] = useState(false);
 
   useEffect(() => {
     const globalSearch = location.state?.globalSearch;
@@ -605,34 +612,22 @@ export default function Students() {
     ]),
   );
 
-  async function toggleStudentActive() {
-    const action = selectedStudent.is_active ? "deactivate" : "reactivate";
+  function requestToggleStudentActive() {
+    if (!selectedStudent) return;
 
-    if (
-      !window.confirm(
-        `${
-          action === "deactivate" ? "Deactivate" : "Reactivate"
-        } ${selectedStudent.firstName} ${
-          selectedStudent.lastName
-        }? Attendance, enrolments and progress notes will be kept.`,
-      )
-    ) {
+    const action = selectedStudent.is_active ? "deactivate" : "reactivate";
+    const apiId = selectedStudent.apiId ?? selectedStudent.id;
+
+    if (apiId === null || apiId === undefined) {
+      notify.error("Could not determine the student ID for this update.");
       return;
     }
 
-    try {
-      await api.post(`/students/${selectedStudent.apiId}/${action}/`);
-      records.refresh();
-      setSelectedStudent(null);
-
-      notify.success(
-        action === "deactivate"
-          ? "Student deactivated. History retained."
-          : "Student reactivated. Existing enrolments and history retained.",
-      );
-    } catch (requestError) {
-      notify.error(errorMessage(requestError));
-    }
+    setPendingStudentAction({
+      type: "status",
+      student: selectedStudent,
+      action,
+    });
   }
 
   async function handleSaveStudent(formData) {
@@ -676,7 +671,7 @@ export default function Students() {
     );
   }
 
-  async function handleDeleteStudent() {
+  function requestDeleteStudent() {
     if (!selectedStudent) return;
 
     const apiId = selectedStudent.apiId ?? selectedStudent.id;
@@ -686,19 +681,43 @@ export default function Students() {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Permanently delete the unused student ${selectedStudent.firstName} ${selectedStudent.lastName}? This cannot be undone. Use Deactivate to retain their history.`,
-    );
+    setPendingStudentAction({
+      type: "delete",
+      student: selectedStudent,
+    });
+  }
 
-    if (!confirmed) return;
+  async function confirmStudentAction() {
+    if (!pendingStudentAction) return;
+
+    const { type, student, action } = pendingStudentAction;
+    const apiId = student.apiId ?? student.id;
+
+    setStudentActionBusy(true);
 
     try {
-      await api.delete(`/students/${apiId}/`);
-      setSelectedStudent(null);
-      await records.refresh();
-      notify.success("Unused student permanently deleted.");
+      if (type === "status") {
+        await api.post(`/students/${apiId}/${action}/`);
+        await records.refresh();
+        setSelectedStudent(null);
+
+        notify.success(
+          action === "deactivate"
+            ? "Student deactivated. History retained."
+            : "Student reactivated. Existing enrolments and history retained.",
+        );
+      } else {
+        await api.delete(`/students/${apiId}/`);
+        setSelectedStudent(null);
+        await records.refresh();
+        notify.success("Unused student permanently deleted.");
+      }
+
+      setPendingStudentAction(null);
     } catch (requestError) {
       notify.error(errorMessage(requestError));
+    } finally {
+      setStudentActionBusy(false);
     }
   }
 
@@ -712,6 +731,39 @@ export default function Students() {
     setEditingStudent(null);
     setShowForm(true);
   }
+
+  const pendingStudent = pendingStudentAction?.student;
+
+  const confirmationDetails = pendingStudentAction
+    ? pendingStudentAction.type === "status"
+      ? {
+          title:
+            pendingStudentAction.action === "deactivate"
+              ? "Deactivate this student?"
+              : "Reactivate this student?",
+          message:
+            pendingStudentAction.action === "deactivate"
+              ? `Deactivate ${pendingStudent.firstName} ${pendingStudent.lastName}? Attendance, enrolments and progress notes will be kept.`
+              : `Reactivate ${pendingStudent.firstName} ${pendingStudent.lastName}? Existing enrolments and history will be retained.`,
+          confirmLabel:
+            pendingStudentAction.action === "deactivate"
+              ? "Deactivate student"
+              : "Reactivate student",
+          variant:
+            pendingStudentAction.action === "deactivate" ? "danger" : "primary",
+        }
+      : {
+          title: "Permanently delete this student?",
+          message: `Permanently delete the unused student ${pendingStudent.firstName} ${pendingStudent.lastName}? This cannot be undone. Use Deactivate to retain their history.`,
+          confirmLabel: "Delete permanently",
+          variant: "danger",
+        }
+    : {
+        title: "",
+        message: "",
+        confirmLabel: "Confirm",
+        variant: "danger",
+      };
 
   return (
     <main className="students-page">
@@ -909,6 +961,7 @@ export default function Students() {
             <p>Try changing your search or filters.</p>
           </div>
         )}
+
         <Pagination
           {...pagination}
           label="Student table pages"
@@ -933,10 +986,23 @@ export default function Students() {
         <StudentDetailsDialog
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
-          onDelete={canManage ? handleDeleteStudent : null}
-          onToggleActive={canManage ? toggleStudentActive : null}
+          onDelete={canManage ? requestDeleteStudent : null}
+          onToggleActive={canManage ? requestToggleStudentActive : null}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingStudentAction)}
+        title={confirmationDetails.title}
+        message={confirmationDetails.message}
+        confirmLabel={confirmationDetails.confirmLabel}
+        variant={confirmationDetails.variant}
+        busy={studentActionBusy}
+        onCancel={() => {
+          if (!studentActionBusy) setPendingStudentAction(null);
+        }}
+        onConfirm={confirmStudentAction}
+      />
     </main>
   );
 }

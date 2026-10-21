@@ -257,55 +257,65 @@
   text-decoration: underline;
 }
 
-/* Subjects table */
+/* Subjects table — aligned with the Students and Guardians tables */
 
 .subjects-table-wrap {
+  width: 100%;
+  min-width: 0;
   overflow-x: auto;
-  border: 1px solid #e7edf2;
-  border-radius: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #aebbc7 #f1f4f7;
+}
+
+.subjects-table-wrap::-webkit-scrollbar {
+  height: 9px;
+}
+
+.subjects-table-wrap::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #f1f4f7;
+}
+
+.subjects-table-wrap::-webkit-scrollbar-thumb {
+  border: 2px solid #f1f4f7;
+  border-radius: 999px;
+  background: #aebbc7;
 }
 
 .subjects-table {
   width: 100%;
-  min-width: 680px;
+  min-width: 760px;
   border-collapse: collapse;
   text-align: left;
 }
 
-.subjects-table th,
-.subjects-table td {
-  padding: 12px 14px;
-  border-bottom: 1px solid #e7edf2;
-  vertical-align: middle;
-}
-
 .subjects-table th {
-  color: #52647c;
-  background: #f7f9fb;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 0.035em;
+  padding: 13px 14px;
+  color: var(--color-muted, #637488);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-.subjects-table tbody tr:last-child td {
-  border-bottom: 0;
+.subjects-table td {
+  padding: 14px;
+  border-top: 1px solid var(--color-border, #dce4eb);
+  color: var(--color-text, #172b3a);
+  font-size: 14px;
+  vertical-align: middle;
 }
 
 .subjects-table tbody tr:hover {
-  background: #fbfcfd;
-}
-
-.subjects-table td {
-  font-size: 14px;
-  line-height: 1.4;
+  background: #f8fafc;
 }
 
 .subjects-name-cell {
   color: var(--subjects-primary);
-  font-weight: 700;
   font-size: 14px;
+  font-weight: 700;
 }
 
 .subjects-status {
@@ -354,84 +364,6 @@
 
 .subjects-action-button--secondary {
   color: #52647c;
-}
-
-/* Pagination */
-
-.subjects-page .crm-pagination {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 16px -22px -22px;
-  padding: 18px 20px 14px;
-  background: #fff;
-}
-
-.subjects-page .crm-pagination::before {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: min(calc(100% - 40px), 960px);
-  border-top: 1px solid var(--subjects-border);
-  content: "";
-  transform: translateX(-50%);
-}
-
-.subjects-page .crm-pagination__summary {
-  color: var(--subjects-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-.subjects-page .crm-pagination__controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.subjects-page .crm-pagination__controls span {
-  color: var(--subjects-primary);
-  font-size: 12px;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-.subjects-page .crm-pagination__controls button {
-  min-height: 34px;
-  padding: 0 11px;
-  border: 1px solid var(--subjects-border);
-  border-radius: 8px;
-  color: var(--subjects-primary);
-  background: #fff;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: pointer;
-  transition:
-    color 150ms ease,
-    background-color 150ms ease,
-    border-color 150ms ease,
-    opacity 150ms ease;
-}
-
-.subjects-page .crm-pagination__controls button:hover:not(:disabled) {
-  border-color: var(--subjects-primary);
-  color: #fff;
-  background: var(--subjects-primary);
-}
-
-.subjects-page .crm-pagination__controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.subjects-page .crm-pagination__controls button:focus-visible {
-  outline: 3px solid rgba(34, 125, 113, 0.2);
-  outline-offset: 2px;
 }
 
 /* Empty state */
@@ -565,11 +497,6 @@
     padding: 17px;
   }
 
-  .subjects-page .crm-pagination {
-    margin: 16px -17px -17px;
-    padding: 14px 17px;
-  }
-
   .subjects-toolbar {
     align-items: stretch;
     flex-direction: column;
@@ -613,29 +540,10 @@
     padding: 10px;
   }
 
-  .subjects-table td,
-  .subjects-name-cell {
-    font-size: 13px;
-  }
-
   .subjects-actions {
     min-width: 118px;
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .subjects-page .crm-pagination {
-    align-items: stretch;
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-    padding-right: 17px;
-    padding-left: 17px;
-  }
-
-  .subjects-page .crm-pagination__controls {
-    justify-content: center;
-    flex-wrap: wrap;
   }
 
   .subjects-modal-backdrop {
@@ -658,8 +566,7 @@
 @media (prefers-reduced-motion: reduce) {
   .subjects-primary-button,
   .subjects-secondary-button,
-  .subjects-action-button,
-  .subjects-page .crm-pagination__controls button {
+  .subjects-action-button {
     transition: none;
   }
 }

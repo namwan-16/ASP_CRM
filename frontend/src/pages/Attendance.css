@@ -184,7 +184,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 0 20px 15px;
+  padding: 15px;
 }
 
 .attendance-search {

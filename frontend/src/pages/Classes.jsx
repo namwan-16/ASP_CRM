@@ -10,6 +10,7 @@ import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import { PAGE_SIZE } from "../hooks/usePagination";
 import { notify } from "../utils/notifications";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function localDateString(date) {
   const year = date.getFullYear();
@@ -310,7 +311,7 @@ function CalendarView({
 }
 
 function findScheduleConflict(form, sessions, editingSessionId) {
-  const staffIds = [form.presenter, form.assistant].filter(Boolean).map(Number);
+  const presenterId = Number(form.presenter);
   const studentIds = new Set(form.studentIds.map(Number));
 
   return sessions
@@ -330,10 +331,7 @@ function findScheduleConflict(form, sessions, editingSessionId) {
       }
 
       const reasons = [];
-      if (
-        staffIds.includes(Number(session.presenterId)) ||
-        (session.assistantId && staffIds.includes(Number(session.assistantId)))
-      ) {
+      if (presenterId === Number(session.presenterId)) {
         reasons.push("staff are already assigned");
       }
       if (
@@ -370,7 +368,6 @@ function ClassForm({
           room: classItem.room,
           capacity: String(classItem.capacity),
           presenter: String(classItem.presenterId),
-          assistant: String(classItem.assistantId || ""),
           studentIds: classItem.studentIds,
         }
       : {
@@ -381,7 +378,6 @@ function ClassForm({
           room: "",
           capacity: "20",
           presenter: "",
-          assistant: "",
           studentIds: [],
         },
   );
@@ -547,56 +543,31 @@ function ClassForm({
               />
             </label>
           </div>
-          <div className="classes-form__row">
-            <label>
-              Presenter
-              <select
-                name="presenter"
-                aria-label="Presenter"
-                value={form.presenter}
-                onChange={updateField}
-                required
-              >
-                <option value="">Select a presenter</option>
-                {staff
-                  .filter(
-                    (person) =>
-                      person.is_active &&
-                      (["presenter", "admin"].includes(person.role) ||
-                        person.is_superuser),
-                  )
-                  .map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {`${person.first_name} ${person.last_name}`.trim() ||
-                        person.email}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label>
-              Assistant (optional)
-              <select
-                name="assistant"
-                value={form.assistant}
-                onChange={updateField}
-              >
-                <option value="">No assistant</option>
-                {staff
-                  .filter(
-                    (person) =>
-                      person.is_active &&
-                      (["assistant", "admin"].includes(person.role) ||
-                        person.is_superuser),
-                  )
-                  .map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {`${person.first_name} ${person.last_name}`.trim() ||
-                        person.email}
-                    </option>
-                  ))}
-              </select>
-            </label>
-          </div>
+          <label>
+            Presenter
+            <select
+              name="presenter"
+              aria-label="Presenter"
+              value={form.presenter}
+              onChange={updateField}
+              required
+            >
+              <option value="">Select a presenter</option>
+              {staff
+                .filter(
+                  (person) =>
+                    person.is_active &&
+                    (["presenter", "admin"].includes(person.role) ||
+                      person.is_superuser),
+                )
+                .map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {`${person.first_name} ${person.last_name}`.trim() ||
+                      person.email}
+                  </option>
+                ))}
+            </select>
+          </label>
           <label>
             Class capacity
             <input
@@ -671,20 +642,24 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState([]);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
+
     api
       .get(`/sessions/${classItem.id}/status-history/`, {
         signal: controller.signal,
       })
       .then(({ data }) => setHistory(data))
       .catch(() => {});
+
     return () => controller.abort();
   }, [classItem.id]);
 
   async function run(action) {
     setBusy(true);
+
     try {
       await action();
     } catch (requestError) {
@@ -702,219 +677,276 @@ function ClassDetails({ classItem, onClose, onEdit, onStatus, students }) {
     classItem.studentIds.includes(student.id),
   );
 
+  const statusConfirmation = pendingStatus
+    ? {
+        cancel: {
+          title: "Cancel this class session?",
+          message:
+            "The session will be marked as cancelled. Its roster, attendance and notes will be retained, and its schedule will become read-only.",
+          confirmLabel: "Cancel session",
+        },
+        archive: {
+          title: "Archive this class session?",
+          message:
+            "The session will be archived. Its roster, attendance and notes will be retained, and its schedule will become read-only.",
+          confirmLabel: "Archive session",
+        },
+        restore: {
+          title: "Restore this class session?",
+          message: "The session will be restored so it can be managed again.",
+          confirmLabel: "Restore session",
+        },
+      }[pendingStatus.action]
+    : null;
+
   return (
-    <div
-      className="classes-dialog-backdrop"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <section
-        className="classes-dialog classes-dialog--details"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="class-details-title"
+    <>
+      <div
+        className="classes-dialog-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) onClose();
+        }}
       >
-        <div className="classes-dialog__heading">
-          <div>
-            <p className="classes-eyebrow">CLASS DETAILS · {classItem.id}</p>
-            <h2 id="class-details-title">{classItem.course}</h2>
-          </div>
-          <button
-            className="classes-icon-button"
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m6 6 12 12M18 6 6 18" />
-            </svg>
-          </button>
-        </div>
-        <dl className="classes-details">
-          <div>
-            <dt>Date and time</dt>
-            <dd>
-              {formatDate(classItem.date)} · {formatTime(classItem.startTime)}–
-              {formatTime(classItem.endTime)}
-            </dd>
-          </div>
-          <div>
-            <dt>Room</dt>
-            <dd>{classItem.room}</dd>
-          </div>
-          <div>
-            <dt>Presenter</dt>
-            <dd>{classItem.presenter}</dd>
-          </div>
-          <div>
-            <dt>Enrolment</dt>
-            <dd>
-              {classItem.studentIds.length} of {classItem.capacity} students
-            </dd>
-          </div>
-        </dl>
-        <p
-          className={`classes-status classes-status--${getStatus(
-            classItem,
-          ).toLowerCase()}`}
-        >
-          {getStatus(classItem)}
-        </p>
-        {classItem.assistant && (
-          <p>
-            <strong>Assistant:</strong> {classItem.assistant}
-          </p>
-        )}
-        {classItem.status_reason && (
-          <p>
-            <strong>Reason:</strong> {classItem.status_reason}
-          </p>
-        )}
-        {classItem.has_history && (
-          <p className="classes-history-hint">
-            This session has recorded history. Its original date, time, room and
-            subject are retained.
-          </p>
-        )}
-        <div className="classes-form__actions">
-          {classItem.status === "scheduled" && (
-            <Link
-              className="classes-primary-button"
-              to={`/attendance?session=${classItem.id}`}
-            >
-              Take attendance
-            </Link>
-          )}
-          <button
-            type="button"
-            className="classes-secondary-button"
-            disabled={busy}
-            onClick={() => run(() => printClassList(classItem.id))}
-          >
-            Print class list
-          </button>
-          <button
-            type="button"
-            className="classes-secondary-button"
-            disabled={busy}
-            onClick={() =>
-              run(() =>
-                download(
-                  `/sessions/${classItem.id}/class-list/?export=csv`,
-                  `class-${classItem.id}-list.csv`,
-                ),
-              )
-            }
-          >
-            Export class list
-          </button>
-        </div>
         <section
-          className="classes-roster"
-          aria-labelledby="classes-roster-title"
+          className="classes-dialog classes-dialog--details"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="class-details-title"
         >
-          <h3 id="classes-roster-title">Enrolled students</h3>
-          {enrolledStudents.length ? (
-            <ul>
-              {enrolledStudents.map((student) => (
-                <li key={student.id}>
-                  <span>{student.name}</span>
-                  <small>
-                    {student.id} · {student.year}
-                  </small>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No students have been assigned to this class yet.</p>
-          )}
-        </section>
-        {onStatus && (
-          <section className="classes-status-controls">
-            <label>
-              Reason (optional)
-              <input
-                maxLength={500}
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                disabled={busy}
-              />
-            </label>
-            <p>
-              Cancel or archive to retain the roster, attendance and notes. Both
-              release the booking and make its history read-only.
-            </p>
-            <div className="classes-form__actions">
-              {classItem.status === "scheduled" && (
-                <button
-                  className="classes-secondary-button"
-                  disabled={busy}
-                  type="button"
-                  onClick={() => run(() => onStatus("cancel", reason))}
-                >
-                  Cancel session
-                </button>
-              )}
-              {classItem.status !== "archived" && (
-                <button
-                  className="classes-secondary-button"
-                  disabled={busy}
-                  type="button"
-                  onClick={() => run(() => onStatus("archive", reason))}
-                >
-                  Archive session
-                </button>
-              )}
-              {classItem.status !== "scheduled" && (
-                <button
-                  className="classes-primary-button"
-                  disabled={busy}
-                  type="button"
-                  onClick={() => run(() => onStatus("restore", reason))}
-                >
-                  Unarchive / resume session
-                </button>
-              )}
+          <div className="classes-dialog__heading">
+            <div>
+              <p className="classes-eyebrow">CLASS DETAILS</p>
+              <h2 id="class-details-title">{classItem.course}</h2>
             </div>
-          </section>
-        )}
-        {history.length > 0 && (
-          <details className="classes-status-controls">
-            <summary>Status history</summary>
-            <ul>
-              {history.map((event) => (
-                <li key={event.id}>
-                  {event.previous_status || "Created"} → {event.status} ·{" "}
-                  {event.changed_by_name} ·{" "}
-                  {new Date(event.changed_at).toLocaleString("en-AU")}
-                  {event.reason ? ` · ${event.reason}` : ""}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-        <div className="classes-form__actions">
-          <button
-            className="classes-secondary-button"
-            type="button"
-            onClick={onClose}
-          >
-            Close
-          </button>
-          {onEdit && (
+
             <button
-              className="classes-primary-button"
+              className="classes-icon-button"
               type="button"
-              onClick={onEdit}
+              onClick={onClose}
+              aria-label="Close dialog"
+              disabled={busy}
             >
-              Edit class
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 6 12 12M18 6 6 18" />
+              </svg>
             </button>
+          </div>
+
+          <dl className="classes-details">
+            <div>
+              <dt>Date and time</dt>
+              <dd>
+                {formatDate(classItem.date)} · {formatTime(classItem.startTime)}
+                –{formatTime(classItem.endTime)}
+              </dd>
+            </div>
+            <div>
+              <dt>Room</dt>
+              <dd>{classItem.room}</dd>
+            </div>
+            <div>
+              <dt>Presenter</dt>
+              <dd>{classItem.presenter}</dd>
+            </div>
+            <div>
+              <dt>Enrolment</dt>
+              <dd>
+                {classItem.studentIds.length} of {classItem.capacity} students
+              </dd>
+            </div>
+          </dl>
+
+          <p
+            className={`classes-status classes-status--${getStatus(
+              classItem,
+            ).toLowerCase()}`}
+          >
+            {getStatus(classItem)}
+          </p>
+
+          {classItem.status_reason && (
+            <p>
+              <strong>Reason:</strong> {classItem.status_reason}
+            </p>
           )}
-        </div>
-      </section>
-    </div>
+
+          {classItem.has_history && (
+            <p className="classes-history-hint">
+              This session has recorded history. Its original date, time, room
+              and subject are retained.
+            </p>
+          )}
+
+          <div className="classes-form__actions classes-details-actions">
+            {classItem.status === "scheduled" && (
+              <Link
+                className="classes-primary-button"
+                to={`/attendance?session=${classItem.id}`}
+              >
+                Take attendance
+              </Link>
+            )}
+
+            <button
+              type="button"
+              className="classes-secondary-button"
+              disabled={busy}
+              onClick={() => run(() => printClassList(classItem.id))}
+            >
+              Print class list
+            </button>
+
+            <button
+              type="button"
+              className="classes-secondary-button"
+              disabled={busy}
+              onClick={() =>
+                run(() =>
+                  download(
+                    `/sessions/${classItem.id}/class-list/?export=csv`,
+                    `class-${classItem.id}-list.csv`,
+                  ),
+                )
+              }
+            >
+              Export class list
+            </button>
+          </div>
+
+          <section
+            className="classes-roster"
+            aria-labelledby="classes-roster-title"
+          >
+            <h3 id="classes-roster-title">Enrolled students</h3>
+
+            {enrolledStudents.length ? (
+              <ul>
+                {enrolledStudents.map((student) => (
+                  <li key={student.id}>
+                    <span>{student.name}</span>
+                    <small>
+                      {student.id} · {student.year}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No students have been assigned to this class yet.</p>
+            )}
+          </section>
+
+          {onStatus && (
+            <section className="classes-status-controls">
+              <h3>Update session status</h3>
+              <label>
+                Reason (optional)
+                <input
+                  maxLength={500}
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  disabled={busy}
+                />
+              </label>
+
+              <p>
+                Cancel or archive to retain the roster, attendance and notes.
+                Both release the booking and make its history read-only.
+              </p>
+
+              <div className="classes-form__actions">
+                {classItem.status === "scheduled" && (
+                  <button
+                    className="classes-secondary-button"
+                    disabled={busy}
+                    type="button"
+                    onClick={() =>
+                      setPendingStatus({ action: "cancel", reason })
+                    }
+                  >
+                    Cancel session
+                  </button>
+                )}
+
+                {classItem.status !== "archived" && (
+                  <button
+                    className="classes-secondary-button"
+                    disabled={busy}
+                    type="button"
+                    onClick={() =>
+                      setPendingStatus({ action: "archive", reason })
+                    }
+                  >
+                    Archive session
+                  </button>
+                )}
+
+                {classItem.status !== "scheduled" && (
+                  <button
+                    className="classes-primary-button"
+                    disabled={busy}
+                    type="button"
+                    onClick={() =>
+                      setPendingStatus({ action: "restore", reason })
+                    }
+                  >
+                    Unarchive / resume session
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
+          {history.length > 0 && (
+            <details className="classes-status-controls">
+              <summary>Status history</summary>
+              <ul>
+                {history.map((event) => (
+                  <li key={event.id}>
+                    {event.previous_status || "Created"} → {event.status} ·{" "}
+                    {event.changed_by_name} ·{" "}
+                    {new Date(event.changed_at).toLocaleString("en-AU")}
+                    {event.reason ? ` · ${event.reason}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          <div className="classes-form__actions classes-details-footer">
+            <button
+              className="classes-secondary-button"
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+            >
+              Close
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingStatus)}
+        title={statusConfirmation?.title || "Confirm session update"}
+        message={
+          statusConfirmation?.message || "Confirm this session status change."
+        }
+        confirmLabel={statusConfirmation?.confirmLabel || "Confirm"}
+        cancelLabel="Keep session"
+        variant={pendingStatus?.action === "restore" ? "default" : "danger"}
+        busy={busy}
+        onConfirm={() => {
+          if (!pendingStatus) return;
+
+          const { action, reason: statusReason } = pendingStatus;
+          run(() => onStatus(action, statusReason));
+        }}
+        onCancel={() => {
+          if (!busy) setPendingStatus(null);
+        }}
+      />
+    </>
   );
 }
 
@@ -1071,7 +1103,6 @@ export default function Classes() {
       room: form.room,
       capacity: form.capacity,
       presenter: Number(form.presenter),
-      assistant: form.assistant ? Number(form.assistant) : null,
       students: form.studentIds,
     };
 

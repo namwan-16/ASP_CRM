@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, X } from "lucide-react";
 import { toast } from "react-toastify";
+import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../api/client";
 import { errorMessage } from "../api/crm";
 import useRecords from "../hooks/useRecords";
@@ -24,6 +25,7 @@ export default function Subjects() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [pendingSubjectAction, setPendingSubjectAction] = useState(null);
 
   const subjects = useMemo(
     () =>
@@ -158,18 +160,15 @@ export default function Subjects() {
     }
   }
 
-  async function setSubjectActive(subject, isActive) {
-    const action = isActive ? "reactivate" : "archive";
-    const confirmed = window.confirm(
-      `${isActive ? "Reactivate" : "Archive"} ${subject.name}? ${
-        isActive
-          ? "It will be available when creating classes again."
-          : "It will stay on existing class records but cannot be selected for new classes."
-      }`,
-    );
+  function setSubjectActive(subject, isActive) {
+    setPendingSubjectAction({ subject, isActive });
+  }
 
-    if (!confirmed) return;
+  async function confirmSubjectAction() {
+    if (!pendingSubjectAction) return;
 
+    const { subject, isActive } = pendingSubjectAction;
+    const action = isActive ? "reactivated" : "archived";
     setSaving(true);
 
     try {
@@ -177,7 +176,8 @@ export default function Subjects() {
         is_active: isActive,
       });
       await records.refresh();
-      toast.success(`Subject ${action}d successfully.`);
+      toast.success(`Subject ${action} successfully.`);
+      setPendingSubjectAction(null);
     } catch (requestError) {
       toast.error(errorMessage(requestError));
     } finally {
@@ -198,7 +198,6 @@ export default function Subjects() {
     <main className="subjects-page">
       <header className="subjects-page__heading">
         <div>
-          <p className="subjects-page__eyebrow">Class setup</p>
           <h1>Manage subjects</h1>
           <p>Manage the subjects available when creating classes.</p>
         </div>
@@ -234,7 +233,6 @@ export default function Subjects() {
       </section>
 
       <section className="subjects-panel" aria-labelledby="subjects-list-title">
-
         <div className="subjects-toolbar" aria-label="Subject filters">
           <label className="subjects-search">
             <Search size={18} aria-hidden="true" />
@@ -410,7 +408,6 @@ export default function Subjects() {
           >
             <div className="subjects-modal__heading">
               <div>
-                <p className="subjects-page__eyebrow">Class setup</p>
                 <h2 id="subjects-modal-title">
                   {editingSubject ? "Edit subject" : "Add a subject"}
                 </h2>
@@ -471,6 +468,32 @@ export default function Subjects() {
           </section>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingSubjectAction)}
+        title={
+          pendingSubjectAction?.isActive
+            ? "Reactivate this subject?"
+            : "Archive this subject?"
+        }
+        message={
+          pendingSubjectAction?.isActive
+            ? "This subject will be available when creating classes again."
+            : "This subject will remain on existing class records but cannot be selected for new classes."
+        }
+        confirmLabel={
+          pendingSubjectAction?.isActive
+            ? "Reactivate subject"
+            : "Archive subject"
+        }
+        cancelLabel="Keep subject"
+        variant={pendingSubjectAction?.isActive ? "default" : "danger"}
+        busy={saving}
+        onConfirm={confirmSubjectAction}
+        onCancel={() => {
+          if (!saving) setPendingSubjectAction(null);
+        }}
+      />
     </main>
   );
 }
