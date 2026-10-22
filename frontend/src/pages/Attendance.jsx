@@ -6,6 +6,7 @@ import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import usePagination from "../hooks/usePagination";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { notify } from "../utils/notifications";
 import "./Attendance.css";
 
@@ -37,6 +38,7 @@ export default function Attendance() {
   const [error, setError] = useState("");
   const [version, setVersion] = useState(0);
   const [dirty, setDirty] = useState(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const initialValues = useRef(new Map());
 
   const sessionList = Array.isArray(sessions.data) ? sessions.data : [];
@@ -156,33 +158,7 @@ export default function Attendance() {
     setDirty(true);
   }
 
-  async function save(event) {
-    event.preventDefault();
-
-    const records = rows
-      .filter((row) => row.status)
-      .map((row) => ({
-        student: row.id,
-        status: row.status,
-        notes: row.notes || "",
-      }));
-
-    if (!records.length) {
-      notify.warning("Choose at least one attendance status.");
-      return;
-    }
-
-    if (
-      attendanceCounts.unmarked > 0 &&
-      !window.confirm(
-        `${attendanceCounts.unmarked} student${
-          attendanceCounts.unmarked === 1 ? " is" : "s are"
-        } still unmarked. Save the marked attendance and leave the remaining students unmarked?`,
-      )
-    ) {
-      return;
-    }
-
+  async function saveAttendance(records) {
     setSaving(true);
 
     try {
@@ -213,256 +189,334 @@ export default function Attendance() {
     }
   }
 
+  async function save(event) {
+    event.preventDefault();
+
+    const records = rows
+      .filter((row) => row.status)
+      .map((row) => ({
+        student: row.id,
+        status: row.status,
+        notes: row.notes || "",
+      }));
+
+    if (!records.length) {
+      notify.warning("Choose at least one attendance status.");
+      return;
+    }
+
+    if (attendanceCounts.unmarked > 0) {
+      setPendingConfirmation({
+        type: "partial-save",
+        records,
+      });
+      return;
+    }
+
+    await saveAttendance(records);
+  }
+
   function changeSession(event) {
     const nextSession = event.target.value;
 
-    if (dirty && !window.confirm("Discard unsaved attendance changes?")) {
+    if (dirty && nextSession !== session) {
+      setPendingConfirmation({
+        type: "change-session",
+        nextSession,
+      });
       return;
     }
 
     setSession(nextSession);
   }
 
+  async function confirmPendingAction() {
+    if (!pendingConfirmation) return;
+
+    const action = pendingConfirmation;
+    setPendingConfirmation(null);
+
+    if (action.type === "partial-save") {
+      await saveAttendance(action.records);
+      return;
+    }
+
+    if (action.type === "change-session") {
+      setSession(action.nextSession);
+    }
+  }
+
+  const isPartialSave = pendingConfirmation?.type === "partial-save";
+  const isChangingSession = pendingConfirmation?.type === "change-session";
+
   return (
-    <main className="attendance-page">
-      <header className="attendance-heading">
-        <div>
-          <h1>Attendance</h1>
-          <p className="attendance-description">
-            Select a class session and record each student’s attendance.
-          </p>
-        </div>
-      </header>
-
-      <section className="attendance-panel" aria-label="Select a class session">
-        <div className="attendance-toolbar">
-          <label className="attendance-control">
-            <select
-              value={session}
-              onChange={changeSession}
-              disabled={saving}
-              aria-label="Class session"
-            >
-              <option value="">Select a class session</option>
-              {sessionList.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.course_name} — {item.date}{" "}
-                  {item.start_time?.slice(0, 5)} ({item.room})
-                  {item.status !== "scheduled" ? ` — ${item.status}` : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
-
-      <RequestState
-        loading={sessions.loading || loading}
-        error={sessions.error || error}
-        onRetry={() => {
-          sessions.refresh();
-          setVersion((value) => value + 1);
-        }}
-      />
-
-      {sessionDetails && readOnly && (
-        <p className="attendance-read-only" role="status">
-          This session is {sessionDetails.status}. Attendance history is
-          read-only. An administrator can restore it to make corrections.
-        </p>
-      )}
-
-      {session && !loading && !error && (
-        <>
-          <section
-            className="attendance-summary"
-            aria-label="Attendance counts"
-            aria-live="polite"
-          >
-            <div className="attendance-summary-card">
-              <span className="attendance-summary-card__label">
-                Total students
-              </span>
-              <strong>{attendanceCounts.total}</strong>
-            </div>
-
-            <div className="attendance-summary-card attendance-summary-card--present">
-              <span className="attendance-summary-card__label">Present</span>
-              <strong>{attendanceCounts.present}</strong>
-            </div>
-
-            <div className="attendance-summary-card attendance-summary-card--absent">
-              <span className="attendance-summary-card__label">Absent</span>
-              <strong>{attendanceCounts.absent}</strong>
-            </div>
-
-            <div className="attendance-summary-card attendance-summary-card--late">
-              <span className="attendance-summary-card__label">Late</span>
-              <strong>{attendanceCounts.late}</strong>
-            </div>
-
-            <div className="attendance-summary-card attendance-summary-card--excused">
-              <span className="attendance-summary-card__label">Excused</span>
-              <strong>{attendanceCounts.excused}</strong>
-            </div>
-
-            <div className="attendance-summary-card attendance-summary-card--waiting">
-              <span className="attendance-summary-card__label">Unmarked</span>
-              <strong>{attendanceCounts.unmarked}</strong>
-            </div>
-          </section>
-
-          {attendanceCounts.unmarked > 0 && (
-            <p className="attendance-unmarked-warning" role="status">
-              {attendanceCounts.unmarked} student
-              {attendanceCounts.unmarked === 1 ? " is" : "s are"} still
-              unmarked. You can save the marks entered so far and complete the
-              remaining attendance later.
+    <>
+      <main className="attendance-page">
+        <header className="attendance-heading">
+          <div>
+            <h1>Attendance</h1>
+            <p className="attendance-description">
+              Select a class session and record each student’s attendance.
             </p>
-          )}
+          </div>
+        </header>
 
-          <section className="attendance-panel" aria-label="Session attendance">
-            <div className="attendance-panel__heading">
-              <div>
-                <h2>Student attendance</h2>
-                <p>
-                  Set each student’s status. Add a note if more context is
-                  needed.
-                </p>
+        <section
+          className="attendance-panel"
+          aria-label="Select a class session"
+        >
+          <div className="attendance-toolbar">
+            <label className="attendance-control">
+              <select
+                value={session}
+                onChange={changeSession}
+                disabled={saving}
+                aria-label="Class session"
+              >
+                <option value="">Select a class session</option>
+                {sessionList.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.course_name} — {item.date}{" "}
+                    {item.start_time?.slice(0, 5)} ({item.room})
+                    {item.status !== "scheduled" ? ` — ${item.status}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <RequestState
+          loading={sessions.loading || loading}
+          error={sessions.error || error}
+          onRetry={() => {
+            sessions.refresh();
+            setVersion((value) => value + 1);
+          }}
+        />
+
+        {sessionDetails && readOnly && (
+          <p className="attendance-read-only" role="status">
+            This session is {sessionDetails.status}. Attendance history is
+            read-only. An administrator can restore it to make corrections.
+          </p>
+        )}
+
+        {session && !loading && !error && (
+          <>
+            <section
+              className="attendance-summary"
+              aria-label="Attendance counts"
+              aria-live="polite"
+            >
+              <div className="attendance-summary-card">
+                <span className="attendance-summary-card__label">
+                  Total students
+                </span>
+                <strong>{attendanceCounts.total}</strong>
               </div>
-            </div>
 
-            <div className="attendance-roster-toolbar">
-              <label className="attendance-search">
-                <span className="visually-hidden">Search the class roster</span>
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search students by name, ID or year"
-                  disabled={!rows.length}
-                />
-              </label>
+              <div className="attendance-summary-card attendance-summary-card--present">
+                <span className="attendance-summary-card__label">Present</span>
+                <strong>{attendanceCounts.present}</strong>
+              </div>
 
-              <span className="attendance-roster-count" aria-live="polite">
-                Showing {filteredRows.length} of {rows.length} students
-              </span>
-            </div>
+              <div className="attendance-summary-card attendance-summary-card--absent">
+                <span className="attendance-summary-card__label">Absent</span>
+                <strong>{attendanceCounts.absent}</strong>
+              </div>
 
-            <form onSubmit={save}>
-              <div className="attendance-table-wrap">
-                <table className="attendance-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Student</th>
-                      <th scope="col">Year</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Notes</th>
-                    </tr>
-                  </thead>
+              <div className="attendance-summary-card attendance-summary-card--late">
+                <span className="attendance-summary-card__label">Late</span>
+                <strong>{attendanceCounts.late}</strong>
+              </div>
 
-                  <tbody>
-                    {pagination.rows.map((row) => {
-                      const studentName = getStudentName(row);
+              <div className="attendance-summary-card attendance-summary-card--excused">
+                <span className="attendance-summary-card__label">Excused</span>
+                <strong>{attendanceCounts.excused}</strong>
+              </div>
 
-                      return (
-                        <tr
-                          key={row.id}
-                          className={
-                            !row.status ? "attendance-row--unmarked" : undefined
-                          }
-                        >
-                          <td>
-                            <div className="attendance-student">
-                              <strong>{studentName}</strong>
-                              <span>ASP-{row.id}</span>
-                            </div>
-                          </td>
+              <div className="attendance-summary-card attendance-summary-card--waiting">
+                <span className="attendance-summary-card__label">Unmarked</span>
+                <strong>{attendanceCounts.unmarked}</strong>
+              </div>
+            </section>
 
-                          <td>{row.year_level || "—"}</td>
+            {attendanceCounts.unmarked > 0 && (
+              <p className="attendance-unmarked-warning" role="status">
+                {attendanceCounts.unmarked} student
+                {attendanceCounts.unmarked === 1 ? " is" : "s are"} still
+                unmarked. You can save the marks entered so far and complete the
+                remaining attendance later.
+              </p>
+            )}
 
-                          <td>
-                            <select
-                              className={`attendance-status-select${
-                                row.status
-                                  ? ` attendance-status-select--${row.status}`
-                                  : ""
-                              }`}
-                              aria-label={`Attendance for ${studentName}`}
-                              value={row.status || ""}
-                              disabled={saving || readOnly}
-                              onChange={(event) =>
-                                update(row.id, "status", event.target.value)
-                              }
-                            >
-                              <option
-                                value=""
-                                disabled={Boolean(row.attendance_id)}
+            <section
+              className="attendance-panel"
+              aria-label="Session attendance"
+            >
+              <div className="attendance-roster-toolbar">
+                <label className="attendance-search">
+                  <span className="visually-hidden">
+                    Search the class roster
+                  </span>
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search students by name, ID or year"
+                    disabled={!rows.length}
+                  />
+                </label>
+              </div>
+
+              <form onSubmit={save}>
+                <div className="attendance-table-wrap">
+                  <table className="attendance-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Student</th>
+                        <th scope="col">Year</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Notes</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {pagination.rows.map((row) => {
+                        const studentName = getStudentName(row);
+
+                        return (
+                          <tr
+                            key={row.id}
+                            className={
+                              !row.status
+                                ? "attendance-row--unmarked"
+                                : undefined
+                            }
+                          >
+                            <td>
+                              <div className="attendance-student">
+                                <strong>{studentName}</strong>
+                                <span>ASP-{row.id}</span>
+                              </div>
+                            </td>
+
+                            <td>{row.year_level || "—"}</td>
+
+                            <td>
+                              <select
+                                className={`attendance-status-select${
+                                  row.status
+                                    ? ` attendance-status-select--${row.status}`
+                                    : ""
+                                }`}
+                                aria-label={`Attendance for ${studentName}`}
+                                value={row.status || ""}
+                                disabled={saving || readOnly}
+                                onChange={(event) =>
+                                  update(row.id, "status", event.target.value)
+                                }
                               >
-                                Unmarked
-                              </option>
-                              <option value="present">Present</option>
-                              <option value="absent">Absent</option>
-                              <option value="late">Late</option>
-                              <option value="excused">Excused</option>
-                            </select>
-                          </td>
+                                <option
+                                  value=""
+                                  disabled={Boolean(row.attendance_id)}
+                                >
+                                  Unmarked
+                                </option>
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="late">Late</option>
+                                <option value="excused">Excused</option>
+                              </select>
+                            </td>
 
-                          <td>
-                            <input
-                              className="attendance-notes-input"
-                              aria-label={`Attendance notes for ${studentName}`}
-                              value={row.notes || ""}
-                              disabled={saving || readOnly}
-                              onChange={(event) =>
-                                update(row.id, "notes", event.target.value)
-                              }
-                            />
+                            <td>
+                              <input
+                                className="attendance-notes-input"
+                                aria-label={`Attendance notes for ${studentName}`}
+                                value={row.notes || ""}
+                                disabled={saving || readOnly}
+                                onChange={(event) =>
+                                  update(row.id, "notes", event.target.value)
+                                }
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {filteredRows.length === 0 && (
+                        <tr>
+                          <td className="attendance-empty" colSpan={4}>
+                            {rows.length
+                              ? "No students match your search."
+                              : "No students are assigned to this session."}
                           </td>
                         </tr>
-                      );
-                    })}
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-                    {filteredRows.length === 0 && (
-                      <tr>
-                        <td className="attendance-empty" colSpan={4}>
-                          {rows.length
-                            ? "No students match your search."
-                            : "No students are assigned to this session."}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                {filteredRows.length > 0 && (
+                  <Pagination
+                    {...pagination}
+                    label="Attendance table pages"
+                    disabled={saving}
+                  />
+                )}
 
-              {filteredRows.length > 0 && (
-                <Pagination
-                  {...pagination}
-                  label="Attendance table pages"
-                  disabled={saving}
-                />
-              )}
+                <div className="attendance-form__actions">
+                  <button
+                    className="attendance-save-button"
+                    type="submit"
+                    disabled={
+                      saving ||
+                      readOnly ||
+                      !rows.length ||
+                      loading ||
+                      !hasUnsavedChanges
+                    }
+                  >
+                    {saving ? "Saving…" : "Save attendance"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </>
+        )}
+      </main>
 
-              <div className="attendance-form__actions">
-                <button
-                  className="attendance-save-button"
-                  type="submit"
-                  disabled={
-                    saving ||
-                    readOnly ||
-                    !rows.length ||
-                    loading ||
-                    !hasUnsavedChanges
-                  }
-                >
-                  {saving ? "Saving…" : "Save attendance"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </>
-      )}
-    </main>
+      <ConfirmDialog
+        open={Boolean(pendingConfirmation)}
+        title={
+          isPartialSave
+            ? "Save incomplete attendance?"
+            : "Discard unsaved attendance changes?"
+        }
+        message={
+          isPartialSave
+            ? `${attendanceCounts.unmarked} student${
+                attendanceCounts.unmarked === 1 ? " is" : "s are"
+              } still unmarked. Save the marked attendance and leave the remaining students unmarked?`
+            : "Changing the class session will discard the attendance changes you have not saved."
+        }
+        confirmLabel={
+          isPartialSave
+            ? "Save marked attendance"
+            : "Discard and switch session"
+        }
+        cancelLabel={
+          isPartialSave ? "Review attendance" : "Stay on this session"
+        }
+        variant={isChangingSession ? "danger" : "warning"}
+        busy={saving}
+        onConfirm={confirmPendingAction}
+        onCancel={() => {
+          if (!saving) setPendingConfirmation(null);
+        }}
+      />
+    </>
   );
 }

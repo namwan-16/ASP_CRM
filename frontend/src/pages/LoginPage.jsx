@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import secureLoginIllustration from "../assets/Secure login.svg";
 import "./LoginPage.css";
@@ -35,6 +35,7 @@ export default function LoginPage() {
   const location = useLocation();
 
   const [form, setForm] = useState({ email: "", password: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -45,23 +46,39 @@ export default function LoginPage() {
 
   function updateField(event) {
     const { name, value } = event.target;
+
     setForm((current) => ({ ...current, [name]: value }));
+    setFieldErrors((current) => ({ ...current, [name]: "" }));
+    setError("");
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
-
     setError("");
 
-    if (!form.email.trim() || !form.password) {
-      setError("Please enter both email and password.");
+    const email = form.email.trim();
+    const nextErrors = {};
+
+    if (!email) {
+      nextErrors.email = "Enter your email address.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (!form.password) {
+      nextErrors.password = "Enter your password.";
+    }
+
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
     setSubmitting(true);
 
     try {
-      await login(form.email.trim(), form.password);
+      await login(email, form.password);
       navigate("/dashboard", { replace: true });
     } catch {
       setError(
@@ -71,6 +88,7 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   }
+
   return (
     <main className="login-page">
       <section className="login-page__art-panel" aria-label="ASP CRM">
@@ -97,7 +115,7 @@ export default function LoginPage() {
             <p>Sign in with your authorised ASP account.</p>
           </header>
 
-          <form className="login-page__form" onSubmit={handleSubmit}>
+          <form className="login-page__form" onSubmit={handleSubmit} noValidate>
             <label className="login-page__field" htmlFor="login-email">
               <span>Email address</span>
               <input
@@ -111,7 +129,20 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={updateField}
                 disabled={submitting}
+                aria-invalid={Boolean(fieldErrors.email)}
+                aria-describedby={
+                  fieldErrors.email ? "login-email-error" : undefined
+                }
               />
+              {fieldErrors.email && (
+                <span
+                  className="login-page__field-error"
+                  id="login-email-error"
+                  role="alert"
+                >
+                  {fieldErrors.email}
+                </span>
+              )}
             </label>
 
             <div className="login-page__field">
@@ -127,6 +158,10 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={updateField}
                   disabled={submitting}
+                  aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={
+                    fieldErrors.password ? "login-password-error" : undefined
+                  }
                 />
 
                 <button
@@ -140,6 +175,16 @@ export default function LoginPage() {
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </span>
+
+              {fieldErrors.password && (
+                <span
+                  className="login-page__field-error"
+                  id="login-password-error"
+                  role="alert"
+                >
+                  {fieldErrors.password}
+                </span>
+              )}
             </div>
 
             {location.state?.message && (
@@ -147,6 +192,7 @@ export default function LoginPage() {
                 {location.state.message}
               </p>
             )}
+
             {error && (
               <p className="login-page__error" role="alert">
                 {error}
@@ -163,9 +209,7 @@ export default function LoginPage() {
               
             </button>
           </form>
-          <div className="login-page__divider">
-            <span>OR</span>
-          </div>
+          
           <p className="login-page__help">
             Forgot your password?{" "}
             <a href="mailto:afterschoolprogram@murdoch.edu.au?subject=ASP%20CRM%20login%20assistance">
@@ -173,10 +217,10 @@ export default function LoginPage() {
             </a>
           </p>
 
-          <p className="login-page__register">
+          {/* <p className="login-page__register">
             Need an ASP CRM account?{" "}
             <Link to="/register">Create an account</Link>
-          </p>
+          </p> */}
         </div>
       </section>
     </main>

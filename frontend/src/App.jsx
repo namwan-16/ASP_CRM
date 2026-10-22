@@ -67,17 +67,16 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/students" element={<Students />} />
               <Route path="/guardians" element={<Guardians />} />
+              <Route path="/subjects" element={<Subjects />} />
               <Route path="/registrations" element={<Registrations />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/staff" element={<Staff />} />
             </Route>
 
             <Route path="/classes" element={<Classes />} />
-            <Route path="/subjects" element={<Subjects />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/progress-notes" element={<ProgressNotes />} />
             <Route path="/emergency-lookup" element={<EmergencyLookup />} />
-
             <Route path="/profile" element={<Profile />} />
 
             <Route path="*" element={<RoleHomeRedirect />} />

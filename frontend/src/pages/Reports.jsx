@@ -36,20 +36,31 @@ export default function Reports() {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
-  const query = new URLSearchParams({ kind });
+  const dateRangeInvalid = Boolean(from && to && from > to);
+  const hasFilters = Boolean(from || to || course);
 
+  const query = new URLSearchParams({ kind });
   if (from) query.set("date_from", from);
   if (to) query.set("date_to", to);
   if (course) query.set("course", course);
 
   const queryString = query.toString();
   const courseRecords = Array.isArray(courses.data) ? courses.data : [];
+  const requestError = error || courses.error;
+  const requestsLoading = loading || courses.loading;
 
   useEffect(() => {
     const controller = new AbortController();
 
-    setLoading(true);
     setError("");
+
+    if (dateRangeInvalid) {
+      setReport(EMPTY);
+      setLoading(false);
+      return () => controller.abort();
+    }
+
+    setLoading(true);
     setReport(EMPTY);
 
     api
@@ -58,7 +69,14 @@ export default function Reports() {
       })
       .then(({ data }) => {
         if (!controller.signal.aborted) {
-          setReport(data);
+          setReport({
+            results: Array.isArray(data?.results) ? data.results : [],
+            columns: Array.isArray(data?.columns) ? data.columns : [],
+            stats: Array.isArray(data?.stats) ? data.stats : [],
+            count: Number.isFinite(Number(data?.count))
+              ? Number(data.count)
+              : 0,
+          });
         }
       })
       .catch((requestError) => {
@@ -73,17 +91,31 @@ export default function Reports() {
       });
 
     return () => controller.abort();
-  }, [queryString, page, version]);
+  }, [queryString, page, version, dateRangeInvalid]);
 
   function filter(setter, value) {
     setter(value);
     setPage(1);
   }
 
+  function clearFilters() {
+    setFrom("");
+    setTo("");
+    setCourse("");
+    setPage(1);
+  }
+
   async function exportReport() {
+    if (dateRangeInvalid) {
+      notify.warning("Choose a valid date range before exporting.");
+      return;
+    }
+
     setExporting(true);
 
     try {
+      // Keep the active filters, but omit page/page_size so the API can export
+      // every row matching those filters.
       await download(
         `/reports/summary/?${queryString}&export=csv`,
         `${kind}-report.csv`,
@@ -96,11 +128,12 @@ export default function Reports() {
     }
   }
 
+  const canShowReport = !requestsLoading && !requestError && !dateRangeInvalid;
+
   return (
     <main className="rp-page">
       <header className="rp-top">
         <div>
-          <p className="rp-eyebrow">ASP CLASS PROCESS</p>
           <h1>Reports</h1>
           <p>
             Generate attendance, late arrival, enrolment and progress reports.
@@ -110,7 +143,9 @@ export default function Reports() {
         <button
           className="rp-btn"
           type="button"
-          disabled={loading || exporting || !report.count}
+          disabled={
+            requestsLoading || exporting || !report.count || dateRangeInvalid
+          }
           onClick={exportReport}
         >
           <Download size={16} aria-hidden="true" />
@@ -139,6 +174,7 @@ export default function Reports() {
           <input
             type="date"
             value={from}
+            max={to || undefined}
             onChange={(event) => filter(setFrom, event.target.value)}
           />
         </label>
@@ -148,17 +184,18 @@ export default function Reports() {
           <input
             type="date"
             value={to}
+            min={from || undefined}
             onChange={(event) => filter(setTo, event.target.value)}
           />
         </label>
 
         <label>
-          Class
+          Subject
           <select
             value={course}
             onChange={(event) => filter(setCourse, event.target.value)}
           >
-            <option value="">All classes</option>
+            <option value="">All subjects</option>
             {courseRecords.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
@@ -166,23 +203,40 @@ export default function Reports() {
             ))}
           </select>
         </label>
+
+        <div className="rp-filters__actions">
+          <button
+            className="rp-clear-btn"
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasFilters || requestsLoading}
+          >
+            Clear filters
+          </button>
+        </div>
       </div>
 
+      {dateRangeInvalid && (
+        <p className="rp-message rp-message--warning" role="alert">
+          The start date must be on or before the end date.
+        </p>
+      )}
+
       <RequestState
-        loading={loading || courses.loading}
-        error={error || courses.error}
+        loading={requestsLoading}
+        error={requestError}
         onRetry={() => {
           setVersion((value) => value + 1);
           courses.refresh();
         }}
       />
 
-      {!loading && !error && (
+      {canShowReport && (
         <>
           <div className="rp-stats">
             {report.stats.map((stat) => (
               <div className="rp-stat" key={stat.label}>
-                <strong>{stat.value}</strong>
+                <strong>{stat.value ?? "—"}</strong>
                 <span>{stat.label}</span>
               </div>
             ))}
@@ -197,25 +251,32 @@ export default function Reports() {
           )}
 
           <div className="rp-table" role="table" aria-label={`${kind} report`}>
-            <div
-              className="rp-tr rp-th"
-              role="row"
-              style={{
-                gridTemplateColumns: `repeat(${report.columns.length}, minmax(0, 1fr))`,
-              }}
-            >
-              {report.columns.map((column) => (
-                <span role="columnheader" key={column.key}>
-                  {column.label}
-                </span>
-              ))}
-            </div>
+            {report.columns.length > 0 && (
+              <div
+                className="rp-tr rp-th"
+                role="row"
+                style={{
+                  gridTemplateColumns: `repeat(${report.columns.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {report.columns.map((column) => (
+                  <span role="columnheader" key={column.key}>
+                    {column.label}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {report.results.map((row, index) => (
               <div
                 className="rp-tr"
                 role="row"
-                key={index}
+                key={
+                  row.id ??
+                  row.session_id ??
+                  row.student_id ??
+                  `${page}-${index}`
+                }
                 style={{
                   gridTemplateColumns: `repeat(${report.columns.length}, minmax(0, 1fr))`,
                 }}
@@ -227,7 +288,14 @@ export default function Reports() {
                         {row[column.key] == null ? "—" : `${row[column.key]}%`}
                         {row[column.key] != null && (
                           <i className="rp-bar">
-                            <b style={{ width: `${row[column.key]}%` }} />
+                            <b
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.max(0, Number(row[column.key]) || 0),
+                                )}%`,
+                              }}
+                            />
                           </i>
                         )}
                       </>
@@ -242,15 +310,20 @@ export default function Reports() {
             {!report.results.length && (
               <p className="rp-empty">No results for these filters.</p>
             )}
-            <Pagination
-              page={page}
-              setPage={setPage}
-              total={report.count}
-              label="Report pages"
-              itemLabel="report rows"
-              disabled={loading}
-            />
           </div>
+
+          {report.count > 0 && (
+            <div className="rp-pagination">
+              <Pagination
+                page={page}
+                setPage={setPage}
+                total={report.count}
+                label="Report pages"
+                itemLabel="report rows"
+                disabled={loading}
+              />
+            </div>
+          )}
         </>
       )}
     </main>

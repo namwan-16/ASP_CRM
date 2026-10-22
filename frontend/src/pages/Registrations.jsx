@@ -7,6 +7,7 @@ import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import usePagination from "../hooks/usePagination";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { notify } from "../utils/notifications";
 
 function formatFileSize(bytes) {
@@ -29,6 +30,7 @@ export default function Registrations() {
   const [result, setResult] = useState(null);
   const [errors, setErrors] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [pendingImport, setPendingImport] = useState(false);
 
   const errorPages = usePagination(errors, file?.name || "");
 
@@ -49,6 +51,7 @@ export default function Registrations() {
     setFile(selectedFile);
     setResult(null);
     setErrors([]);
+    setPendingImport(false);
   }
 
   async function upload(dryRun) {
@@ -114,10 +117,16 @@ export default function Registrations() {
     setFile(null);
     setResult(null);
     setErrors([]);
+    setPendingImport(false);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  async function confirmImport() {
+    setPendingImport(false);
+    await upload(false);
   }
 
   return (
@@ -298,7 +307,7 @@ export default function Registrations() {
               className="registrations-primary-button"
               type="button"
               disabled={busy || !file || !result?.dry_run}
-              onClick={() => upload(false)}
+              onClick={() => setPendingImport(true)}
             >
               {busy ? "Processing…" : "Import students"}
             </button>
@@ -311,6 +320,20 @@ export default function Registrations() {
           </p>
         </section>
       )}
+
+      <ConfirmDialog
+        open={pendingImport}
+        title="Import these student records?"
+        message={`The preview found ${result?.created ?? 0} new student records and ${result?.updated ?? 0} records to update. Continuing will save these changes.`}
+        confirmLabel="Import students"
+        cancelLabel="Return to preview"
+        variant="default"
+        busy={busy}
+        onConfirm={confirmImport}
+        onCancel={() => {
+          if (!busy) setPendingImport(false);
+        }}
+      />
     </main>
   );
 }

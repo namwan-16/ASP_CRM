@@ -253,10 +253,29 @@
   font-weight: 700;
 }
 
-.guardian-students {
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.guardians-table td.guardian-students {
+  min-width: 180px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.guardian-student-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guardian-student-list li {
+  min-width: 0;
+  color: var(--color-text);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.guardian-students__empty {
+  color: var(--color-muted);
 }
 
 .guardians-table a,
@@ -482,43 +501,65 @@
 .guardians-student-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 14px;
+  align-items: start;
+  gap: 10px;
 }
 
 .guardians-student-option {
+  display: grid;
   min-width: 0;
-  padding: 10px;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid var(--color-border);
   border-radius: 9px;
-  background: var(--color-background);
+  background: var(--color-surface);
 }
 
-.guardians-student-options label {
+.guardians-student-option--selected {
+  border-color: var(--color-accent);
+  background: #f5faf9;
+}
+
+.guardians-student-options .guardians-student-option__choice {
   display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 9px;
   color: var(--color-text);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.guardians-student-option__choice span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .guardians-student-link-fields {
   display: grid;
+  min-width: 0;
   gap: 10px;
-  margin: 10px 0 0 24px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
 }
 
 .guardians-student-options .guardians-student-link-fields label {
   display: grid;
-  align-items: start;
+  min-width: 0;
   gap: 6px;
+  color: var(--color-text);
   font-size: 12px;
+  font-weight: 700;
 }
 
 .guardians-student-options
   .guardians-student-link-fields
   input:not([type="checkbox"]) {
+  width: 100%;
   min-height: 38px;
   padding: 8px 10px;
 }
@@ -527,15 +568,28 @@
   .guardians-student-link-fields
   .guardians-emergency-checkbox {
   display: flex;
+  min-height: 22px;
   align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  color: var(--color-text);
+  font-size: 12px;
   font-weight: 600;
+  line-height: 1.35;
+  cursor: pointer;
 }
 
-.guardians-student-options input {
+.guardians-student-options input[type="checkbox"] {
+  appearance: auto;
+  display: inline-block;
   width: 16px;
   height: 16px;
-  flex: 0 0 auto;
+  min-width: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  padding: 0;
   accent-color: var(--color-accent);
+  vertical-align: middle;
 }
 
 .guardians-form__error {

@@ -106,7 +106,6 @@ export default function Profile() {
     <main className="profile-page">
       <header className="profile-page__heading">
         <div>
-          <p className="profile-page__eyebrow">ACCOUNT SETTINGS</p>
           <h1>My profile</h1>
           <p>View and update your account details.</p>
         </div>

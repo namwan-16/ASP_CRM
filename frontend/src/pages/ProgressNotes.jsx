@@ -9,6 +9,7 @@ import RequestState from "../components/RequestState";
 import Pagination from "../components/Pagination";
 import usePagination from "../hooks/usePagination";
 import { notify } from "../utils/notifications";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const NOTE_PREFIX = "ASP_PROGRESS_NOTE_V1:";
 const ACHIEVEMENT_OPTIONS = ["Under", "Fair", "Over"];
@@ -144,6 +145,7 @@ export default function ProgressNotes() {
 
   const [sessionId, setSessionId] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
   const [editing, setEditing] = useState(null);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState(false);
@@ -299,10 +301,8 @@ export default function ProgressNotes() {
   function closeModal() {
     if (saving) return;
 
-    if (
-      hasModalChanges &&
-      !window.confirm("Discard your unsaved progress note changes?")
-    ) {
+    if (hasModalChanges) {
+      setPendingConfirmation({ type: "discard" });
       return;
     }
 
@@ -459,17 +459,24 @@ export default function ProgressNotes() {
     }
   }
 
-  async function toggleDeletedNote(note) {
-    const restoring = Boolean(note.is_deleted);
+  function requestToggleDeletedNote(note) {
+    setPendingConfirmation({
+      type: "note",
+      note,
+      restoring: Boolean(note.is_deleted),
+    });
+  }
 
-    const confirmed = window.confirm(
-      restoring
-        ? "Restore this progress note to the student’s history?"
-        : "Delete this progress note from the current list? Its content and audit history will be retained and can be restored.",
-    );
+  async function confirmPendingAction() {
+    if (!pendingConfirmation) return;
 
-    if (!confirmed) return;
+    if (pendingConfirmation.type === "discard") {
+      setPendingConfirmation(null);
+      resetModal();
+      return;
+    }
 
+    const { note, restoring } = pendingConfirmation;
     setSaving(true);
 
     try {
@@ -483,12 +490,39 @@ export default function ProgressNotes() {
       notify.success(
         restoring ? "Progress note restored." : "Progress note deleted.",
       );
+      setPendingConfirmation(null);
     } catch (requestError) {
       notify.error(errorMessage(requestError));
     } finally {
       setSaving(false);
     }
   }
+
+  const confirmationDetails =
+    pendingConfirmation?.type === "discard"
+      ? {
+          title: "Discard unsaved changes?",
+          message: "Your progress note changes will be lost.",
+          confirmLabel: "Discard changes",
+          variant: "danger",
+        }
+      : pendingConfirmation?.restoring
+        ? {
+            title: "Restore this progress note?",
+            message:
+              "The note will return to the student’s progress note history.",
+            confirmLabel: "Restore note",
+            variant: "default",
+          }
+        : pendingConfirmation
+          ? {
+              title: "Delete this progress note?",
+              message:
+                "The note will be removed from the current list. Its content and audit history will be retained, and it can be restored later.",
+              confirmLabel: "Delete note",
+              variant: "danger",
+            }
+          : null;
 
   function clearFilters() {
     setQuery("");
@@ -690,7 +724,7 @@ export default function ProgressNotes() {
                   <button
                     type="button"
                     disabled={saving}
-                    onClick={() => toggleDeletedNote(note)}
+                    onClick={() => requestToggleDeletedNote(note)}
                   >
                     {note.is_deleted ? "Restore" : "Delete"}
                   </button>
@@ -917,6 +951,22 @@ export default function ProgressNotes() {
           </section>
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingConfirmation)}
+        title={confirmationDetails?.title || "Confirm action"}
+        message={confirmationDetails?.message || "Confirm this action."}
+        confirmLabel={confirmationDetails?.confirmLabel || "Confirm"}
+        cancelLabel={
+          pendingConfirmation?.type === "discard" ? "Keep editing" : "Cancel"
+        }
+        variant={confirmationDetails?.variant || "default"}
+        busy={saving}
+        onConfirm={confirmPendingAction}
+        onCancel={() => {
+          if (!saving) setPendingConfirmation(null);
+        }}
+      />
     </main>
   );
 }
