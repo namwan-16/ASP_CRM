@@ -180,9 +180,9 @@ export default function Dashboard() {
       <header className="dashboard-page__heading">
         <div>
           <h1>Welcome back, {getFirstName(user)}</h1>
-          <p className="dashboard-page__intro">
+          {/* <p className="dashboard-page__intro">
             Here are your most-used tools for today.
-          </p>
+          </p> */}
         </div>
       </header>
 
@@ -204,9 +204,9 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="dashboard-welcome__mark" aria-hidden="true">
+        {/* <div className="dashboard-welcome__mark" aria-hidden="true">
           ASP
-        </div>
+        </div> */}
       </section>
 
       <section
