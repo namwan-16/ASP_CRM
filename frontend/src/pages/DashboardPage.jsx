@@ -199,7 +199,7 @@ export default function Dashboard() {
           </h2>
           <p>
             {isAdministrator
-              ? "Choose a task below to manage students, classes and program records."
+              ? "."
               : "Open a class, record attendance or add a progress note."}
           </p>
         </div>
