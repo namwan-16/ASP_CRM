@@ -564,7 +564,7 @@ export default function Layout() {
               <SearchOutlined aria-hidden="true" />
               <input
                 type="search"
-                placeholder="Search records..."
+                placeholder="Search students, guardians, classes..."
                 aria-label="Search students, guardians, classes, and staff"
                 autoComplete="off"
                 aria-autocomplete="list"
