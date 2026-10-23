@@ -194,7 +194,7 @@ export default function Dashboard() {
           <p className="dashboard-welcome__eyebrow">Your ASP workspace</p>
           <h2 id="dashboard-welcome-title">
             {isAdministrator
-              ? "Manage your program in one place."
+              ? "Manage everything in one place."
               : "Get ready for your classes."}
           </h2>
           <p>
