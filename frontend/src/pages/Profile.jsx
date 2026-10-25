@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/client";
+import { errorMessage } from "../api/crm";
+import { notify } from "../utils/notifications";
 import { useAuth } from "../context/AuthContext";
 import "./Profile.css";
 
@@ -15,7 +19,11 @@ function isAdministrator(user) {
 }
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, updateProfile, clearSession } = useAuth();
+  const navigate = useNavigate();
+
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const [profile, setProfile] = useState({
     first_name: user?.first_name ?? "",
@@ -29,9 +37,6 @@ export default function Profile() {
     confirmPassword: "",
   });
 
-  const [profileMessage, setProfileMessage] = useState("");
-  const [passwordMessage, setPasswordMessage] = useState("");
-
   useEffect(() => {
     setProfile({
       first_name: user?.first_name ?? "",
@@ -43,42 +48,64 @@ export default function Profile() {
   function handleProfileChange(event) {
     const { name, value } = event.target;
     setProfile((current) => ({ ...current, [name]: value }));
-    setProfileMessage("");
   }
 
   function handlePasswordChange(event) {
     const { name, value } = event.target;
     setPasswordForm((current) => ({ ...current, [name]: value }));
-    setPasswordMessage("");
   }
 
-  function handleProfileSubmit(event) {
+  async function handleProfileSubmit(event) {
     event.preventDefault();
-    setProfileMessage(
-      "This form is a frontend preview. Profile changes are not saved yet.",
-    );
+    setProfileSaving(true);
+
+    try {
+      await updateProfile(profile);
+      notify.success("Your profile has been saved.");
+    } catch (requestError) {
+      notify.error(errorMessage(requestError));
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
-  function handlePasswordSubmit(event) {
+  async function handlePasswordSubmit(event) {
     event.preventDefault();
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage("The new passwords do not match.");
+      notify.error("The new passwords do not match.");
       return;
     }
 
-    setPasswordMessage(
-      "This form is a frontend preview. Your password has not been changed.",
-    );
+    setPasswordSaving(true);
+
+    try {
+      await api.post("/auth/change-password/", {
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        new_password_confirm: passwordForm.confirmPassword,
+      });
+
+      notify.success("Password changed. Sign in with your new password.");
+      clearSession();
+      navigate("/login", { replace: true });
+    } catch (requestError) {
+      notify.error(errorMessage(requestError));
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
-  const roleLabel = isAdministrator(user) ? "Administrator" : "Presenter";
+  const roleLabel = isAdministrator(user)
+    ? "Administrator"
+    : user?.role === "assistant"
+      ? "Assistant"
+      : "Presenter";
 
   return (
     <main className="profile-page">
       <header className="profile-page__heading">
         <div>
-          <p className="profile-page__eyebrow">ACCOUNT SETTINGS</p>
           <h1>My profile</h1>
           <p>View and update your account details.</p>
         </div>
@@ -88,63 +115,69 @@ export default function Profile() {
         <div className="profile-card__heading">
           <div>
             <h2 id="profile-details-title">Personal details</h2>
-            <p>Update the name and email shown on your account.</p>
+            <p>
+              Update your name and email. Your email is also your sign-in
+              address.
+            </p>
           </div>
         </div>
 
         <form className="profile-form" onSubmit={handleProfileSubmit}>
-          <div className="profile-form__row">
+          <fieldset
+            className="profile-fields"
+            disabled={profileSaving || passwordSaving}
+          >
+            <div className="profile-form__row">
+              <label>
+                First name
+                <input
+                  type="text"
+                  name="first_name"
+                  autoComplete="given-name"
+                  value={profile.first_name}
+                  onChange={handleProfileChange}
+                  required
+                />
+              </label>
+
+              <label>
+                Last name
+                <input
+                  type="text"
+                  name="last_name"
+                  autoComplete="family-name"
+                  value={profile.last_name}
+                  onChange={handleProfileChange}
+                  required
+                />
+              </label>
+            </div>
+
             <label>
-              First name
+              Email address
               <input
-                type="text"
-                name="first_name"
-                autoComplete="given-name"
-                value={profile.first_name}
+                type="email"
+                name="email"
+                autoComplete="email"
+                value={profile.email}
                 onChange={handleProfileChange}
                 required
               />
             </label>
 
             <label>
-              Last name
-              <input
-                type="text"
-                name="last_name"
-                autoComplete="family-name"
-                value={profile.last_name}
-                onChange={handleProfileChange}
-                required
-              />
+              Role
+              <input type="text" value={roleLabel} disabled readOnly />
             </label>
-          </div>
-
-          <label>
-            Email address
-            <input
-              type="email"
-              name="email"
-              autoComplete="email"
-              value={profile.email}
-              onChange={handleProfileChange}
-              required
-            />
-          </label>
-
-          <label>
-            Role
-            <input type="text" value={roleLabel} disabled readOnly />
-          </label>
-
-          {profileMessage && (
-            <p className="profile-message" role="status">
-              {profileMessage}
-            </p>
-          )}
+          </fieldset>
 
           <div className="profile-form__actions">
-            <button className="profile-primary-button" type="submit">
-              Save profile
+            <button
+              className="profile-primary-button"
+              type="submit"
+              disabled={profileSaving || passwordSaving}
+            >
+              {profileSaving ? "Saving…" : "Save profile"}
             </button>
           </div>
         </form>
@@ -154,58 +187,61 @@ export default function Profile() {
         <div className="profile-card__heading">
           <div>
             <h2 id="password-title">Change password</h2>
-            <p>Choose a new password for your account.</p>
+            <p>Changing your password signs you out on all devices.</p>
           </div>
         </div>
 
         <form className="profile-form" onSubmit={handlePasswordSubmit}>
-          <label>
-            Current password
-            <input
-              type="password"
-              name="currentPassword"
-              autoComplete="current-password"
-              value={passwordForm.currentPassword}
-              onChange={handlePasswordChange}
-              required
-            />
-          </label>
-
-          <div className="profile-form__row">
+          <fieldset
+            className="profile-fields"
+            disabled={passwordSaving || profileSaving}
+          >
             <label>
-              New password
+              Current password
               <input
                 type="password"
-                name="newPassword"
-                autoComplete="new-password"
-                value={passwordForm.newPassword}
+                name="currentPassword"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
                 onChange={handlePasswordChange}
                 required
               />
             </label>
 
-            <label>
-              Confirm new password
-              <input
-                type="password"
-                name="confirmPassword"
-                autoComplete="new-password"
-                value={passwordForm.confirmPassword}
-                onChange={handlePasswordChange}
-                required
-              />
-            </label>
-          </div>
+            <div className="profile-form__row">
+              <label>
+                New password
+                <input
+                  type="password"
+                  name="newPassword"
+                  autoComplete="new-password"
+                  value={passwordForm.newPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
+              </label>
 
-          {passwordMessage && (
-            <p className="profile-message" role="status">
-              {passwordMessage}
-            </p>
-          )}
+              <label>
+                Confirm new password
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  autoComplete="new-password"
+                  value={passwordForm.confirmPassword}
+                  onChange={handlePasswordChange}
+                  required
+                />
+              </label>
+            </div>
+          </fieldset>
 
           <div className="profile-form__actions">
-            <button className="profile-primary-button" type="submit">
-              Change password
+            <button
+              className="profile-primary-button"
+              type="submit"
+              disabled={passwordSaving || profileSaving}
+            >
+              {passwordSaving ? "Changing…" : "Change password"}
             </button>
           </div>
         </form>

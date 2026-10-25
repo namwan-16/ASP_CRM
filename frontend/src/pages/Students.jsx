@@ -1,18 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import "./Students.css";
 import api from "../api/client";
 import { errorMessage, studentRecord } from "../api/crm";
 import useRecords from "../hooks/useRecords";
 import { useAuth } from "../context/AuthContext";
 import RequestState from "../components/RequestState";
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
-  );
-}
+import Pagination from "../components/Pagination";
+import usePagination from "../hooks/usePagination";
+import { notify } from "../utils/notifications";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function SearchIcon() {
   return (
@@ -23,9 +20,23 @@ function SearchIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
 function displayValue(value) {
   return value === null || value === undefined || value === ""
     ? "Not recorded"
+    : value;
+}
+
+function tableValue(value) {
+  return value === null || value === undefined || String(value).trim() === ""
+    ? "—"
     : value;
 }
 
@@ -33,12 +44,13 @@ function permissionChoice(value) {
   return value === true || value === 1 || value === "Yes" ? "Yes" : "No";
 }
 
-function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
+function StudentDetailsDialog({ student, onClose, onDelete, onToggleActive }) {
   if (!student) return null;
 
   return (
     <div
       className="students-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -51,7 +63,7 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
       >
         <div className="students-dialog__heading">
           <div>
-            <p className="students-page__eyebrow">Student record</p>
+            <p className="students-dialog__eyebrow">Student details</p>
             <h2 id="student-details-title">
               {student.firstName} {student.lastName}
             </h2>
@@ -74,59 +86,62 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
             <dt>Student ID</dt>
             <dd>{displayValue(student.studentId ?? student.id)}</dd>
           </div>
-
           <div>
             <dt>Date of birth</dt>
             <dd>
               {displayValue(student.date_of_birth ?? student.dateOfBirth)}
             </dd>
           </div>
-
           <div>
             <dt>School</dt>
             <dd>{displayValue(student.school)}</dd>
           </div>
-
           <div>
             <dt>Year level</dt>
             <dd>{displayValue(student.level)}</dd>
           </div>
-
           <div>
             <dt>Subject</dt>
             <dd>{displayValue(student.subject)}</dd>
           </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{student.is_active ? "Active" : "Inactive"}</dd>
+          </div>
+        </dl>
 
+        <h3 className="students-details__section-title">
+          Contact and guardian
+        </h3>
+
+        <dl className="students-details">
           <div>
             <dt>Guardian</dt>
             <dd>{displayValue(student.guardian)}</dd>
           </div>
-
           <div>
             <dt>Guardian relationship</dt>
             <dd>{displayValue(student.relationship)}</dd>
           </div>
-
           <div>
             <dt>Email</dt>
             <dd>{displayValue(student.email)}</dd>
           </div>
-
           <div>
             <dt>Phone</dt>
             <dd>{displayValue(student.phone ?? student.mobilePhone)}</dd>
           </div>
+        </dl>
 
+        <h3 className="students-details__section-title">
+          Additional information
+        </h3>
+
+        <dl className="students-details">
           <div>
             <dt>Permission to travel alone</dt>
             <dd>{permissionChoice(student.permissionToTravelAlone)}</dd>
           </div>
-
-          <div>
-            <dt>Status</dt>
-            <dd>{displayValue(student.status)}</dd>
-          </div>
-
           <div>
             <dt>Medical information</dt>
             <dd>
@@ -135,7 +150,6 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
               )}
             </dd>
           </div>
-
           <div>
             <dt>Special circumstances</dt>
             <dd>
@@ -146,14 +160,32 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
           </div>
         </dl>
 
+        {student.can_delete === false && (
+          <p className="crm-history-hint">
+            This student has protected history. Deactivate to stop current work
+            and reactivate when they return.
+          </p>
+        )}
+
         <div className="students-form__actions">
+          {onToggleActive && (
+            <button
+              className="students-primary-button"
+              type="button"
+              onClick={onToggleActive}
+            >
+              {student.is_active ? "Deactivate" : "Reactivate"}
+            </button>
+          )}
+
           {onDelete && (
             <button
               className="students-secondary-button"
               type="button"
               onClick={onDelete}
+              disabled={student.can_delete === false}
             >
-              Delete
+              Delete permanently
             </button>
           )}
 
@@ -170,14 +202,14 @@ function StudentDetailsDialog({ student, onClose, onEdit, onDelete }) {
   );
 }
 
-function StudentFormDialog({ student, guardians, onClose, onSave }) {
+function StudentFormDialog({ student, guardians, subjects, onClose, onSave }) {
   const [formData, setFormData] = useState(() => ({
     firstName: student?.firstName ?? "",
     lastName: student?.lastName ?? "",
     date_of_birth: student?.date_of_birth ?? student?.dateOfBirth ?? "",
     school: student?.school ?? "",
     level: student?.level ?? "",
-    subject: student?.subject ?? "",
+    subject: student?.subject_id ? String(student.subject_id) : "",
     email: student?.email ?? "",
     phone: student?.phone ?? student?.mobilePhone ?? "",
     guardian: student?.guardianId ?? "",
@@ -190,7 +222,6 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
     status: student?.status ?? "Active",
   }));
 
-  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   function handleChange(event) {
@@ -200,13 +231,12 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
     setSaving(true);
 
     try {
       await onSave(formData);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      notify.error(errorMessage(requestError));
     } finally {
       setSaving(false);
     }
@@ -215,6 +245,7 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
   return (
     <div
       className="students-dialog-backdrop"
+      role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -227,17 +258,21 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
       >
         <div className="students-dialog__heading">
           <div>
-            <p className="students-page__eyebrow">Student records</p>
+            <p className="students-dialog__eyebrow">
+              {student ? "Update student record" : "New student record"}
+            </p>
             <h2 id="student-form-title">
-              {student ? "Edit student" : "Add student"}
+              {student ? "Edit student details" : "Add a student"}
             </h2>
+            
           </div>
 
           <button
             className="students-icon-button"
             type="button"
             onClick={onClose}
-            aria-label="Close student form"
+            disabled={saving}
+            aria-label={`Close ${student ? "edit student" : "add student"} dialog`}
           >
             <CloseIcon />
           </button>
@@ -289,7 +324,7 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
               </label>
 
               <label>
-                Year level
+                Level
                 <select
                   name="level"
                   value={formData.level}
@@ -321,8 +356,17 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
                   required
                 >
                   <option value="">Select a subject</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="Physical Sciences">Physical Sciences</option>
+                  {subjects
+                    .filter(
+                      (item) =>
+                        item.is_active || item.id === student?.subject_id,
+                    )
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                        {!item.is_active ? " (archived)" : ""}
+                      </option>
+                    ))}
                 </select>
               </label>
             </div>
@@ -432,12 +476,6 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
             </div>
           </section>
 
-          {error && (
-            <p className="crm-message crm-message--error" role="alert">
-              {error}
-            </p>
-          )}
-
           <div className="students-form__actions">
             <button
               className="students-secondary-button"
@@ -463,8 +501,10 @@ function StudentFormDialog({ student, guardians, onClose, onSave }) {
 }
 
 export default function Students() {
+  const location = useLocation();
   const records = useRecords("/students/");
   const guardianRecords = useRecords("/guardians/");
+  const subjectRecords = useRecords("/courses/");
   const { user } = useAuth();
 
   const students = useMemo(
@@ -477,15 +517,23 @@ export default function Students() {
     : [];
 
   const canManage = Boolean(user?.can_manage);
-
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("All levels");
   const [roomFilter, setRoomFilter] = useState("All rooms");
   const [subjectFilter, setSubjectFilter] = useState("All subjects");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [showForm, setShowForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [actionError, setActionError] = useState("");
+  const [pendingStudentAction, setPendingStudentAction] = useState(null);
+  const [studentActionBusy, setStudentActionBusy] = useState(false);
+
+  useEffect(() => {
+    const globalSearch = location.state?.globalSearch;
+    if (typeof globalSearch === "string" && globalSearch.trim()) {
+      setSearch(globalSearch);
+    }
+  }, [location.key]);
 
   const filteredStudents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -493,7 +541,6 @@ export default function Students() {
     return students.filter((student) => {
       const fullName =
         `${student.firstName ?? ""} ${student.lastName ?? ""}`.toLowerCase();
-
       const studentId = String(
         student.studentId ?? student.id ?? "",
       ).toLowerCase();
@@ -511,16 +558,21 @@ export default function Students() {
 
       const matchesLevel =
         levelFilter === "All levels" || student.level === levelFilter;
-
       const matchesRoom =
         roomFilter === "All rooms" || student.room === roomFilter;
-
       const matchesSubject =
         subjectFilter === "All subjects" || student.subject === subjectFilter;
 
-      return matchesSearch && matchesLevel && matchesRoom && matchesSubject;
+      return (
+        matchesSearch &&
+        matchesLevel &&
+        matchesRoom &&
+        matchesSubject &&
+        (statusFilter === "all" ||
+          student.is_active === (statusFilter === "active"))
+      );
     });
-  }, [students, search, levelFilter, roomFilter, subjectFilter]);
+  }, [students, search, levelFilter, roomFilter, subjectFilter, statusFilter]);
 
   const levelOptions = useMemo(
     () =>
@@ -541,10 +593,42 @@ export default function Students() {
   const subjectOptions = useMemo(
     () =>
       [
-        ...new Set(students.map((student) => student.subject).filter(Boolean)),
+        ...new Set([
+          ...subjectRecords.data.map((item) => item.name),
+          ...students.map((item) => item.subject).filter(Boolean),
+        ]),
       ].sort(),
-    [students],
+    [subjectRecords.data, students],
   );
+
+  const pagination = usePagination(
+    filteredStudents,
+    JSON.stringify([
+      search,
+      levelFilter,
+      roomFilter,
+      subjectFilter,
+      statusFilter,
+    ]),
+  );
+
+  function requestToggleStudentActive() {
+    if (!selectedStudent) return;
+
+    const action = selectedStudent.is_active ? "deactivate" : "reactivate";
+    const apiId = selectedStudent.apiId ?? selectedStudent.id;
+
+    if (apiId === null || apiId === undefined) {
+      notify.error("Could not determine the student ID for this update.");
+      return;
+    }
+
+    setPendingStudentAction({
+      type: "status",
+      student: selectedStudent,
+      action,
+    });
+  }
 
   async function handleSaveStudent(formData) {
     const payload = {
@@ -553,7 +637,7 @@ export default function Students() {
       date_of_birth: formData.date_of_birth,
       school: formData.school.trim(),
       year_level: formData.level,
-      subject: formData.subject,
+      subject_id: formData.subject ? Number(formData.subject) : null,
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       medical_information: formData.medical_information.trim(),
@@ -579,32 +663,61 @@ export default function Students() {
     await records.refresh();
     setShowForm(false);
     setEditingStudent(null);
-    setActionError("");
+
+    notify.success(
+      editingStudent
+        ? "Student updated successfully."
+        : "Student added successfully.",
+    );
   }
 
-  async function handleDeleteStudent() {
+  function requestDeleteStudent() {
     if (!selectedStudent) return;
 
     const apiId = selectedStudent.apiId ?? selectedStudent.id;
 
     if (apiId === null || apiId === undefined) {
-      setActionError("Could not determine the student ID for deletion.");
+      notify.error("Could not determine the student ID for deletion.");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Delete ${selectedStudent.firstName} ${selectedStudent.lastName}?`,
-    );
+    setPendingStudentAction({
+      type: "delete",
+      student: selectedStudent,
+    });
+  }
 
-    if (!confirmed) return;
+  async function confirmStudentAction() {
+    if (!pendingStudentAction) return;
+
+    const { type, student, action } = pendingStudentAction;
+    const apiId = student.apiId ?? student.id;
+
+    setStudentActionBusy(true);
 
     try {
-      await api.delete(`/students/${apiId}/`);
-      setSelectedStudent(null);
-      setActionError("");
-      await records.refresh();
+      if (type === "status") {
+        await api.post(`/students/${apiId}/${action}/`);
+        await records.refresh();
+        setSelectedStudent(null);
+
+        notify.success(
+          action === "deactivate"
+            ? "Student deactivated. History retained."
+            : "Student reactivated. Existing enrolments and history retained.",
+        );
+      } else {
+        await api.delete(`/students/${apiId}/`);
+        setSelectedStudent(null);
+        await records.refresh();
+        notify.success("Unused student permanently deleted.");
+      }
+
+      setPendingStudentAction(null);
     } catch (requestError) {
-      setActionError(errorMessage(requestError));
+      notify.error(errorMessage(requestError));
+    } finally {
+      setStudentActionBusy(false);
     }
   }
 
@@ -615,18 +728,50 @@ export default function Students() {
   }
 
   function openAddForm() {
-    setActionError("");
     setEditingStudent(null);
     setShowForm(true);
   }
+
+  const pendingStudent = pendingStudentAction?.student;
+
+  const confirmationDetails = pendingStudentAction
+    ? pendingStudentAction.type === "status"
+      ? {
+          title:
+            pendingStudentAction.action === "deactivate"
+              ? "Deactivate this student?"
+              : "Reactivate this student?",
+          message:
+            pendingStudentAction.action === "deactivate"
+              ? `Deactivate ${pendingStudent.firstName} ${pendingStudent.lastName}? Attendance, enrolments and progress notes will be kept.`
+              : `Reactivate ${pendingStudent.firstName} ${pendingStudent.lastName}? Existing enrolments and history will be retained.`,
+          confirmLabel:
+            pendingStudentAction.action === "deactivate"
+              ? "Deactivate student"
+              : "Reactivate student",
+          variant:
+            pendingStudentAction.action === "deactivate" ? "danger" : "primary",
+        }
+      : {
+          title: "Permanently delete this student?",
+          message: `Permanently delete the unused student ${pendingStudent.firstName} ${pendingStudent.lastName}? This cannot be undone. Use Deactivate to retain their history.`,
+          confirmLabel: "Delete permanently",
+          variant: "danger",
+        }
+    : {
+        title: "",
+        message: "",
+        confirmLabel: "Confirm",
+        variant: "danger",
+      };
 
   return (
     <main className="students-page">
       <header className="students-page__heading">
         <div>
-          <h1>Students</h1>
+          <h1>Student Records</h1>
           <p className="students-page__description">
-            View and manage student records.
+            Search, review and update student information.
           </p>
         </div>
 
@@ -643,19 +788,16 @@ export default function Students() {
       </header>
 
       <RequestState
-        loading={records.loading || guardianRecords.loading}
-        error={records.error || guardianRecords.error}
+        loading={
+          records.loading || guardianRecords.loading || subjectRecords.loading
+        }
+        error={records.error || guardianRecords.error || subjectRecords.error}
         onRetry={() => {
           records.refresh();
           guardianRecords.refresh();
+          subjectRecords.refresh();
         }}
       />
-
-      {actionError && (
-        <p className="crm-message crm-message--error" role="alert">
-          {actionError}
-        </p>
-      )}
 
       <section className="students-panel" aria-label="Student records">
         <div className="students-toolbar">
@@ -663,7 +805,6 @@ export default function Students() {
             <span className="students-search__icon">
               <SearchIcon />
             </span>
-
             <span className="visually-hidden">Search students</span>
             <input
               type="search"
@@ -674,11 +815,24 @@ export default function Students() {
           </label>
 
           <label className="students-filter">
+            <span>Status</span>
+            <select
+              aria-label="Filter by student status"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="all">All students</option>
+            </select>
+          </label>
+
+          <label className="students-filter">
             <span>Level</span>
             <select
               value={levelFilter}
               onChange={(event) => setLevelFilter(event.target.value)}
-              aria-label="Filter by level"
+              aria-label="Filter by year level"
             >
               <option>All levels</option>
               {levelOptions.map((level) => (
@@ -724,95 +878,102 @@ export default function Students() {
           )}
         </div>
 
-        <div className="students-results">
-          <span>
-            Showing <strong>{filteredStudents.length}</strong> of{" "}
-            <strong>{students.length}</strong> students
-          </span>
-        </div>
-
         {filteredStudents.length > 0 ? (
-          <div
-            className="students-table-wrap"
-            role="region"
-            aria-label="Student list. Scroll horizontally to see all columns."
-            tabIndex={0}
-          >
-            <table className="students-table">
-              <thead>
-                <tr>
-                  <th scope="col">Student ID</th>
-                  <th scope="col">Student</th>
-                  <th scope="col">Level</th>
-                  <th scope="col">Subject</th>
-                  <th scope="col">Phone</th>
-                  <th scope="col">Email</th>
-                  <th scope="col" className="student-row-action">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr key={student.apiId ?? student.id}>
-                    <td className="student-id">
-                      {displayValue(student.studentId ?? student.id)}
-                    </td>
-                    <td>
-                      <span className="student-name">
-                        {student.firstName} {student.lastName}
-                      </span>
-                    </td>
-                    <td>{displayValue(student.level)}</td>
-                    <td>{displayValue(student.subject)}</td>
-                    <td>
-                      {displayValue(student.mobilePhone ?? student.phone)}
-                    </td>
-                    <td>{displayValue(student.email)}</td>
-                    <td className="student-row-action">
-                      <div className="students-row-actions">
-                        <button
-                          className="students-view-button"
-                          type="button"
-                          onClick={() => {
-                            setActionError("");
-                            setSelectedStudent(student);
-                          }}
-                          aria-label={`View ${student.firstName} ${student.lastName}`}
-                        >
-                          View
-                        </button>
-
-                        {canManage && (
-                          <button
-                            className="students-edit-button"
-                            type="button"
-                            onClick={() => openEditForm(student)}
-                            aria-label={`Edit ${student.firstName} ${student.lastName}`}
-                          >
-                            Edit
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <div
+              className="students-table-wrap"
+              role="region"
+              aria-label="Student list. Scroll horizontally to see all columns."
+              tabIndex={0}
+            >
+              <table className="students-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Student ID</th>
+                    <th scope="col">Student</th>
+                    <th scope="col">Level</th>
+                    <th scope="col">Subject</th>
+                    <th scope="col">Primary guardian</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="student-row-action">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+
+                <tbody>
+                  {pagination.rows.map((student) => (
+                    <tr key={student.apiId ?? student.id}>
+                      <td className="student-id">
+                        {tableValue(student.studentId ?? student.id)}
+                      </td>
+                      <td>
+                        <span className="student-name">
+                          {student.firstName} {student.lastName}
+                        </span>
+                      </td>
+                      <td>{tableValue(student.level)}</td>
+                      <td>{tableValue(student.subject)}</td>
+                      <td>{tableValue(student.guardian)}</td>
+                      <td>
+                        <span
+                          className={`students-status ${
+                            student.is_active
+                              ? "students-status--active"
+                              : "students-status--inactive"
+                          }`}
+                        >
+                          {student.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="student-row-action">
+                        <div className="students-row-actions">
+                          <button
+                            className="students-view-button"
+                            type="button"
+                            onClick={() => setSelectedStudent(student)}
+                            aria-label={`View ${student.firstName} ${student.lastName}`}
+                          >
+                            View
+                          </button>
+
+                          {canManage && (
+                            <button
+                              className="students-edit-button"
+                              type="button"
+                              onClick={() => openEditForm(student)}
+                              aria-label={`Edit ${student.firstName} ${student.lastName}`}
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <div className="students-empty-state">
             <h2>No students found</h2>
             <p>Try changing your search or filters.</p>
           </div>
         )}
+
+        <Pagination
+          {...pagination}
+          label="Student table pages"
+          itemLabel="students"
+        />
       </section>
 
       {showForm && canManage && (
         <StudentFormDialog
           student={editingStudent}
           guardians={guardians}
+          subjects={subjectRecords.data}
           onClose={() => {
             setShowForm(false);
             setEditingStudent(null);
@@ -825,10 +986,23 @@ export default function Students() {
         <StudentDetailsDialog
           student={selectedStudent}
           onClose={() => setSelectedStudent(null)}
-          onEdit={canManage ? () => openEditForm(selectedStudent) : null}
-          onDelete={canManage ? handleDeleteStudent : null}
+          onDelete={canManage ? requestDeleteStudent : null}
+          onToggleActive={canManage ? requestToggleStudentActive : null}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingStudentAction)}
+        title={confirmationDetails.title}
+        message={confirmationDetails.message}
+        confirmLabel={confirmationDetails.confirmLabel}
+        variant={confirmationDetails.variant}
+        busy={studentActionBusy}
+        onCancel={() => {
+          if (!studentActionBusy) setPendingStudentAction(null);
+        }}
+        onConfirm={confirmStudentAction}
+      />
     </main>
   );
 }

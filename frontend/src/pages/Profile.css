@@ -15,19 +15,10 @@
   gap: 20px;
 }
 
-.profile-page__eyebrow {
-  margin: 0 0 8px;
-  color: var(--color-accent);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
 .profile-page__heading h1 {
   margin: 0;
   color: var(--color-primary);
-  font-size: clamp(28px, 3vw, 38px);
+  font-size: clamp(25px, 3vw, 18px);
   line-height: 1.2;
 }
 
@@ -176,4 +167,25 @@
   .profile-primary-button {
     width: 100%;
   }
+}
+
+.profile-fields {
+  display: grid;
+  gap: 16px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.profile-message--success {
+  color: #12664f;
+  background: #e9f7ef;
+}
+.profile-message--error {
+  color: #982323;
+  background: #fff0f0;
+}
+.profile-primary-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }

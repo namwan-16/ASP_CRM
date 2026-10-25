@@ -1,215 +1,331 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import "./Reports.css";
+import api from "../api/client";
+import { download, errorMessage } from "../api/crm";
 import useRecords from "../hooks/useRecords";
 import RequestState from "../components/RequestState";
+import Pagination from "../components/Pagination";
+import { notify } from "../utils/notifications";
 
+const TABS = [
+  { key: "attendance", label: "Attendance" },
+  { key: "late-arrivals", label: "Late arrivals" },
+  { key: "enrolment", label: "Enrolment" },
+  { key: "progress-notes", label: "Progress notes" },
+];
 
-const TABS = ["Attendance", "Late arrivals", "Enrolment", "Progress notes"];
-const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
-const fmt = (d) =>
-  new Date(d + "T00:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
-
-function csvDownload(name, columns, rows) {
-  const esc = (v) => {
-    let value = String(v ?? "");
-    if (/^[\s]*[=+@-]/.test(value)) value = "'" + value;
-    return `"${value.replace(/"/g, '""')}"`;
-  };
-  const lines = [columns.map((c) => esc(c.label)).join(",")];
-  rows.forEach((r) => lines.push(columns.map((c) => esc(r[c.key])).join(",")));
-  const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: name });
-  a.click();
-  URL.revokeObjectURL(url);
-}
+const EMPTY = {
+  results: [],
+  columns: [],
+  stats: [],
+  count: 0,
+};
 
 export default function Reports() {
-  const sessions = useRecords("/sessions/");
-  const attendance = useRecords("/attendance/");
-  const notes = useRecords("/progress-notes/");
-  const CLASSES = [...new Set(sessions.data.map((item) => item.course_name))];
-  const SESSIONS = sessions.data.map((item) => {
-    const marked = attendance.data.filter((row) => row.session === item.id);
-    return { date: item.date, cls: item.course_name, present: marked.filter((row) => ["present", "late"].includes(row.status)).length,
-      total: marked.length, late: marked.filter((row) => row.status === "late").length };
-  });
-  const LATE = attendance.data.filter((row) => row.status === "late").map((row) => ({ date: row.session_date, cls: row.course_name, student: row.student_name, notes: row.notes }));
-  const ENROLMENT = sessions.data.map((row) => ({ cls: row.course_name, date: row.date, enrolled: row.students.length, capacity: row.capacity }));
-  const ACTIVITY = notes.data.map((row) => ({ date: row.date, user: row.author_name || "Former staff", action: `${row.student_name}: ${row.text}` }));
-  const [tab, setTab] = useState("Attendance");
+  const courses = useRecords("/courses/");
+
+  const [kind, setKind] = useState("attendance");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [cls, setCls] = useState("All");
+  const [course, setCourse] = useState("");
+  const [page, setPage] = useState(1);
+  const [version, setVersion] = useState(0);
+  const [report, setReport] = useState(EMPTY);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState("");
 
-  const report = useMemo(() => {
-    const inRange = (r) => (!from || r.date >= from) && (!to || r.date <= to) && (cls === "All" || r.cls === cls);
+  const dateRangeInvalid = Boolean(from && to && from > to);
+  const hasFilters = Boolean(from || to || course);
 
-    if (tab === "Attendance") {
-      const s = SESSIONS.filter(inRange);
-      const rows = CLASSES.filter((c) => cls === "All" || c === cls)
-        .map((c) => {
-          const x = s.filter((r) => r.cls === c);
-          const present = x.reduce((n, r) => n + r.present, 0);
-          const total = x.reduce((n, r) => n + r.total, 0);
-          return { cls: c, sessions: x.length, present, rate: pct(present, total) };
-        })
-        .filter((r) => r.sessions > 0);
-      const present = s.reduce((n, r) => n + r.present, 0);
-      const total = s.reduce((n, r) => n + r.total, 0);
-      return {
-        stats: [
-          { n: `${pct(present, total)}%`, l: "Average attendance" },
-          { n: present, l: "Student check-ins" },
-          { n: s.reduce((n, r) => n + r.late, 0), l: "Late arrivals" },
-        ],
-        columns: [
-          { key: "cls", label: "Class" },
-          { key: "sessions", label: "Sessions" },
-          { key: "present", label: "Present" },
-          { key: "rate", label: "Attendance", bar: true },
-        ],
-        rows,
-      };
+  const query = new URLSearchParams({ kind });
+  if (from) query.set("date_from", from);
+  if (to) query.set("date_to", to);
+  if (course) query.set("course", course);
+
+  const queryString = query.toString();
+  const courseRecords = Array.isArray(courses.data) ? courses.data : [];
+  const requestError = error || courses.error;
+  const requestsLoading = loading || courses.loading;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setError("");
+
+    if (dateRangeInvalid) {
+      setReport(EMPTY);
+      setLoading(false);
+      return () => controller.abort();
     }
 
-    if (tab === "Late arrivals") {
-      const rows = LATE.filter(inRange).map((r) => ({ ...r, when: fmt(r.date) }));
-      return {
-        stats: [
-          { n: rows.length, l: "Late arrivals" },
-          { n: new Set(rows.map((r) => r.student)).size, l: "Students affected" },
-        ],
-        columns: [
-          { key: "student", label: "Student" },
-          { key: "cls", label: "Class" },
-          { key: "when", label: "Date" },
-          { key: "notes", label: "Notes" },
-        ],
-        rows,
-      };
+    setLoading(true);
+    setReport(EMPTY);
+
+    api
+      .get(`/reports/summary/?${queryString}&page=${page}&page_size=5`, {
+        signal: controller.signal,
+      })
+      .then(({ data }) => {
+        if (!controller.signal.aborted) {
+          setReport({
+            results: Array.isArray(data?.results) ? data.results : [],
+            columns: Array.isArray(data?.columns) ? data.columns : [],
+            stats: Array.isArray(data?.stats) ? data.stats : [],
+            count: Number.isFinite(Number(data?.count))
+              ? Number(data.count)
+              : 0,
+          });
+        }
+      })
+      .catch((requestError) => {
+        if (!controller.signal.aborted) {
+          setError(errorMessage(requestError));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [queryString, page, version, dateRangeInvalid]);
+
+  function filter(setter, value) {
+    setter(value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setFrom("");
+    setTo("");
+    setCourse("");
+    setPage(1);
+  }
+
+  async function exportReport() {
+    if (dateRangeInvalid) {
+      notify.warning("Choose a valid date range before exporting.");
+      return;
     }
 
-    if (tab === "Enrolment") {
-      const rows = ENROLMENT.filter(inRange).map((r) => ({
-        ...r,
-        rate: pct(r.enrolled, r.capacity),
-      }));
-      const enrolled = rows.reduce((n, r) => n + r.enrolled, 0);
-      const capacity = rows.reduce((n, r) => n + r.capacity, 0);
-      return {
-        stats: [
-          { n: enrolled, l: "Session places filled" },
-          { n: capacity - enrolled, l: "Spots available" },
-          { n: `${pct(enrolled, capacity)}%`, l: "Capacity filled" },
-        ],
-        columns: [
-          { key: "cls", label: "Class" },
-          { key: "enrolled", label: "Enrolled" },
-          { key: "capacity", label: "Capacity" },
-          { key: "rate", label: "Filled", bar: true },
-        ],
-        rows,
-      };
+    setExporting(true);
+
+    try {
+      // Keep the active filters, but omit page/page_size so the API can export
+      // every row matching those filters.
+      await download(
+        `/reports/summary/?${queryString}&export=csv`,
+        `${kind}-report.csv`,
+      );
+      notify.success("Report CSV downloaded.");
+    } catch (requestError) {
+      notify.error(errorMessage(requestError));
+    } finally {
+      setExporting(false);
     }
+  }
 
-    const rows = ACTIVITY.filter((r) => (!from || r.date >= from) && (!to || r.date <= to)).map((r) => ({ ...r, when: fmt(r.date) }));
-    return {
-      stats: [
-        { n: rows.length, l: "Progress notes" },
-        { n: new Set(rows.map((r) => r.user)).size, l: "Note authors" },
-        { n: rows[0] ? rows[0].when : "–", l: "Latest note" },
-      ],
-      columns: [
-        { key: "when", label: "Date" },
-        { key: "user", label: "User" },
-        { key: "action", label: "Note" },
-      ],
-      rows,
-    };
-  }, [tab, from, to, cls, sessions.data, attendance.data, notes.data]);
-
-  const hideClass = tab === "Progress notes";
-  const cols = `repeat(${report.columns.length}, minmax(0, 1fr))`;
+  const canShowReport = !requestsLoading && !requestError && !dateRangeInvalid;
 
   return (
     <main className="rp-page">
-      <div className="rp-top">
+      <header className="rp-top">
         <div>
           <h1>Reports</h1>
-          <p>View recorded attendance, late arrivals, enrolment and progress notes.</p>
+          <p>
+            Generate attendance, late arrival, enrolment and progress reports.
+          </p>
         </div>
+
         <button
           className="rp-btn"
           type="button"
-          disabled={report.rows.length === 0}
-          onClick={() => csvDownload(`${tab.toLowerCase().replace(/\s/g, "-")}-report.csv`, report.columns, report.rows)}
+          disabled={
+            requestsLoading || exporting || !report.count || dateRangeInvalid
+          }
+          onClick={exportReport}
         >
-          <Download size={16} /> Export CSV
+          <Download size={16} aria-hidden="true" />
+          {exporting ? "Exporting…" : "Export CSV"}
         </button>
-      </div>
-      <RequestState loading={sessions.loading || attendance.loading || notes.loading} error={sessions.error || attendance.error || notes.error} onRetry={() => { sessions.refresh(); attendance.refresh(); notes.refresh(); }} />
+      </header>
 
-      <div className="rp-tabs" role="tablist">
-        {TABS.map((t) => (
+      <div className="rp-tabs" role="tablist" aria-label="Report type">
+        {TABS.map((tab) => (
           <button
-            key={t}
+            key={tab.key}
             type="button"
             role="tab"
-            aria-selected={tab === t}
-            className={`rp-tab${tab === t ? " is-active" : ""}`}
-            onClick={() => setTab(t)}
+            aria-selected={kind === tab.key}
+            className={`rp-tab${kind === tab.key ? " is-active" : ""}`}
+            onClick={() => filter(setKind, tab.key)}
           >
-            {t}
+            {tab.label}
           </button>
         ))}
       </div>
 
       <div className="rp-filters">
-        <label>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label>To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
-        {!hideClass && (
-          <label>
-            Class
-            <select value={cls} onChange={(e) => setCls(e.target.value)}>
-              <option value="All">All classes</option>
-              {CLASSES.map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </label>
-        )}
-      </div>
+        <label>
+          From
+          <input
+            type="date"
+            value={from}
+            max={to || undefined}
+            onChange={(event) => filter(setFrom, event.target.value)}
+          />
+        </label>
 
-      <div className="rp-stats">
-        {report.stats.map((s) => (
-          <div className="rp-stat" key={s.l}>
-            <strong>{s.n}</strong>
-            <span>{s.l}</span>
-          </div>
-        ))}
-      </div>
+        <label>
+          To
+          <input
+            type="date"
+            value={to}
+            min={from || undefined}
+            onChange={(event) => filter(setTo, event.target.value)}
+          />
+        </label>
 
-      <div className="rp-table">
-        <div className="rp-tr rp-th" style={{ gridTemplateColumns: cols }}>
-          {report.columns.map((c) => <span key={c.key}>{c.label}</span>)}
+        <label>
+          Subject
+          <select
+            value={course}
+            onChange={(event) => filter(setCourse, event.target.value)}
+          >
+            <option value="">All subjects</option>
+            {courseRecords.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="rp-filters__actions">
+          <button
+            className="rp-clear-btn"
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasFilters || requestsLoading}
+          >
+            Clear filters
+          </button>
         </div>
-        {report.rows.map((r, i) => (
-          <div className="rp-tr" style={{ gridTemplateColumns: cols }} key={i}>
-            {report.columns.map((c) => (
-              <span key={c.key}>
-                {c.bar ? (
-                  <>
-                    {r[c.key]}%
-                    <i className="rp-bar"><b style={{ width: `${r[c.key]}%` }} /></i>
-                  </>
-                ) : (
-                  r[c.key]
-                )}
-              </span>
+      </div>
+
+      {dateRangeInvalid && (
+        <p className="rp-message rp-message--warning" role="alert">
+          The start date must be on or before the end date.
+        </p>
+      )}
+
+      <RequestState
+        loading={requestsLoading}
+        error={requestError}
+        onRetry={() => {
+          setVersion((value) => value + 1);
+          courses.refresh();
+        }}
+      />
+
+      {canShowReport && (
+        <>
+          <div className="rp-stats">
+            {report.stats.map((stat) => (
+              <div className="rp-stat" key={stat.label}>
+                <strong>{stat.value ?? "—"}</strong>
+                <span>{stat.label}</span>
+              </div>
             ))}
           </div>
-        ))}
-        {report.rows.length === 0 && <p className="rp-empty">No results for these filters.</p>}
-      </div>
+
+          {kind === "attendance" && (
+            <p className="rp-definition">
+              Present includes late arrivals. The percentage uses recorded
+              marks; unmarked students are shown separately. Cancelled sessions
+              are excluded. Archived history is included.
+            </p>
+          )}
+
+          <div className="rp-table" role="table" aria-label={`${kind} report`}>
+            {report.columns.length > 0 && (
+              <div
+                className="rp-tr rp-th"
+                role="row"
+                style={{
+                  gridTemplateColumns: `repeat(${report.columns.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {report.columns.map((column) => (
+                  <span role="columnheader" key={column.key}>
+                    {column.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {report.results.map((row, index) => (
+              <div
+                className="rp-tr"
+                role="row"
+                key={
+                  row.id ??
+                  row.session_id ??
+                  row.student_id ??
+                  `${page}-${index}`
+                }
+                style={{
+                  gridTemplateColumns: `repeat(${report.columns.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {report.columns.map((column) => (
+                  <span role="cell" key={column.key}>
+                    {column.bar ? (
+                      <>
+                        {row[column.key] == null ? "—" : `${row[column.key]}%`}
+                        {row[column.key] != null && (
+                          <i className="rp-bar">
+                            <b
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.max(0, Number(row[column.key]) || 0),
+                                )}%`,
+                              }}
+                            />
+                          </i>
+                        )}
+                      </>
+                    ) : (
+                      (row[column.key] ?? "—")
+                    )}
+                  </span>
+                ))}
+              </div>
+            ))}
+
+            {!report.results.length && (
+              <p className="rp-empty">No results for these filters.</p>
+            )}
+          </div>
+
+          {report.count > 0 && (
+            <div className="rp-pagination">
+              <Pagination
+                page={page}
+                setPage={setPage}
+                total={report.count}
+                label="Report pages"
+                itemLabel="report rows"
+                disabled={loading}
+              />
+            </div>
+          )}
+        </>
+      )}
     </main>
   );
 }

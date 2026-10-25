@@ -27,6 +27,11 @@ class Registration(models.Model):
 
 
 class ClassSession(models.Model):
+    class Status(models.TextChoices):
+        SCHEDULED = "scheduled", "Scheduled"
+        CANCELLED = "cancelled", "Cancelled"
+        ARCHIVED = "archived", "Archived"
+
     course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="sessions")
     date = models.DateField()
     start_time = models.TimeField()
@@ -34,8 +39,13 @@ class ClassSession(models.Model):
     room = models.CharField(max_length=150)
     capacity = models.PositiveIntegerField(default=20)
     presenter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="presented_sessions")
-    assistant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="assisted_sessions", null=True, blank=True)
+    assistant = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="assisted_sessions", null=True, blank=True)
     students = models.ManyToManyField("students.Student", related_name="class_sessions", blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.SCHEDULED, db_index=True)
+    status_reason = models.CharField(max_length=500, blank=True)
+    status_changed_at = models.DateTimeField(null=True, blank=True)
+    status_changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
+                                         null=True, blank=True, related_name="session_status_changes")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -50,6 +60,18 @@ class ClassSession(models.Model):
         return f"{self.course} - {self.date}"
 
 
+class SessionStatusEvent(models.Model):
+    session = models.ForeignKey(ClassSession, on_delete=models.PROTECT, related_name="status_events")
+    previous_status = models.CharField(max_length=12, blank=True)
+    status = models.CharField(max_length=12, choices=ClassSession.Status.choices)
+    reason = models.CharField(max_length=500, blank=True)
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at", "-id"]
+
+
 class Attendance(models.Model):
     class Status(models.TextChoices):
         PRESENT = "present", "Present"
@@ -61,7 +83,7 @@ class Attendance(models.Model):
     student = models.ForeignKey("students.Student", on_delete=models.PROTECT, related_name="attendance")
     status = models.CharField(max_length=10, choices=Status.choices)
     notes = models.TextField(blank=True)
-    marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    marked_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -74,9 +96,25 @@ class ProgressNote(models.Model):
     session = models.ForeignKey(ClassSession, on_delete=models.PROTECT, related_name="progress_notes", null=True, blank=True)
     text = models.TextField(max_length=10000)
     date = models.DateField(default=timezone.localdate)
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+                                   related_name="deleted_progress_notes")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-date", "-created_at"]
+
+
+class NoteEvent(models.Model):
+    note = models.ForeignKey(ProgressNote, on_delete=models.PROTECT, related_name="events")
+    action = models.CharField(max_length=10, choices=[(value, value.title()) for value in ("created", "edited", "deleted", "restored")])
+    text = models.TextField()
+    date = models.DateField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    occurred_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-occurred_at", "-id"]

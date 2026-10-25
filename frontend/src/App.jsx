@@ -17,6 +17,8 @@ import Attendance from "./pages/Attendance";
 import Registrations from "./pages/Registrations";
 import Staff from "./pages/Staff";
 import Profile from "./pages/Profile";
+import "react-toastify/dist/ReactToastify.css";
+import AppToastContainer from "./components/AppToastContainer";
 
 import "./features.css";
 
@@ -52,34 +54,37 @@ function AdminOnlyRoute() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
+    <>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-      <Route element={<ProtectedRoute />}>
-        <Route element={<Layout />}>
-          <Route index element={<RoleHomeRedirect />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route index element={<RoleHomeRedirect />} />
 
-          <Route element={<AdminOnlyRoute />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/students" element={<Students />} />
-            <Route path="/guardians" element={<Guardians />} />
-            <Route path="/subjects" element={<Subjects />} />
-            <Route path="/registrations" element={<Registrations />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/staff" element={<Staff />} />
+            <Route element={<AdminOnlyRoute />}>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/guardians" element={<Guardians />} />
+              <Route path="/subjects" element={<Subjects />} />
+              <Route path="/registrations" element={<Registrations />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/staff" element={<Staff />} />
+            </Route>
+
+            <Route path="/classes" element={<Classes />} />
+            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/progress-notes" element={<ProgressNotes />} />
+            <Route path="/emergency-lookup" element={<EmergencyLookup />} />
+            <Route path="/profile" element={<Profile />} />
+
+            <Route path="*" element={<RoleHomeRedirect />} />
           </Route>
-
-          <Route path="/classes" element={<Classes />} />
-          <Route path="/attendance" element={<Attendance />} />
-          <Route path="/progress-notes" element={<ProgressNotes />} />
-          <Route path="/emergency-lookup" element={<EmergencyLookup />} />
-
-          <Route path="/profile" element={<Profile />} />
-
-          <Route path="*" element={<RoleHomeRedirect />} />
         </Route>
-      </Route>
-    </Routes>
+      </Routes>
+
+      <AppToastContainer />
+    </>
   );
 }
