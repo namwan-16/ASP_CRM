@@ -515,3 +515,60 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ===== Tablet ===== */
+@media (max-width: 850px) {
+  .login-page__art-panel,
+  .register-page__visual {
+    min-height: auto;
+    padding: 28px 20px 24px;
+  }
+
+  .login-page__illustration,
+  .register-page__illustration {
+    max-height: 220px;          /* much smaller */
+    width: min(100%, 320px);
+  }
+
+  .login-page__art-caption,
+  .register-page__caption {
+    margin-top: 12px;
+  }
+}
+
+/* ===== Mobile ===== */
+@media (max-width: 560px) {
+  .register-brand{
+    display: block;
+            text-align: center;
+  }
+  .login-page__art-panel,
+  .register-page__visual {
+    padding: 24px 16px 20px;
+  }
+
+  /* Option A: Keep a small illustration */
+  .login-page__illustration,
+  .register-page__illustration {
+    max-height: 160px;
+    width: min(100%, 260px);
+  }
+
+  /* Option B (Recommended): Hide illustration completely */
+  
+  .login-page__illustration-wrap,
+  .register-page__illustration-wrap {
+    display: none;
+  }
+ 
+
+  .login-page__art-brand h2,
+  .register-brand__text h1 {
+    font-size: 1.8rem;
+  }
+
+  .login-page__art-caption p,
+  .register-page__caption h2 {
+    font-size: 0.95rem;
+  }
+}
