@@ -1,6 +1,5 @@
-
 /* =========================================
-   ASP CRM - Registration Page
+   ASP CRM - Registration Page (Compact)
    ========================================= */
 
 .register-page {
@@ -22,7 +21,6 @@
   overflow: clip;
   background: #f3f8fe;
   color: var(--register-text);
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
 }
 
 /* =========================================
@@ -36,104 +34,84 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(1.25rem, 3vh, 2rem);
+  gap: 1.1rem;
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(2rem, 4vw, 4rem);
+  padding: 1.75rem 2rem;
   overflow: hidden;
   color: #fff;
   background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(29, 128, 174, 0.55),
-      transparent 27%
-    ),
-    radial-gradient(
-      circle at 0% 100%,
-      rgba(10, 105, 151, 0.4),
-      transparent 35%
-    ),
-    linear-gradient(
-      145deg,
-      #174c73 0%,
-      #0b3458 50%,
-      #082744 100%
-    );
+    radial-gradient(circle at 100% 0%, rgba(29, 128, 174, 0.45), transparent 27%),
+    radial-gradient(circle at 0% 100%, rgba(10, 105, 151, 0.35), transparent 35%),
+    linear-gradient(145deg, #174c73 0%, #0b3458 50%, #082744 100%);
 }
 
-/* Decorative background circles */
-
+/* Decorative circles – softer */
 .register-page__decoration {
   position: absolute;
   z-index: -1;
   display: block;
-  border: 1px solid rgba(107, 188, 234, 0.16);
+  border: 1px solid rgba(107, 188, 234, 0.12);
   border-radius: 50%;
   pointer-events: none;
 }
 
 .register-page__decoration--one {
-  top: -150px;
-  left: -140px;
-  width: 380px;
-  height: 380px;
-  background: rgba(92, 159, 209, 0.08);
+  top: -140px;
+  left: -130px;
+  width: 340px;
+  height: 340px;
+  background: rgba(92, 159, 209, 0.07);
 }
 
 .register-page__decoration--two {
-  right: -190px;
-  bottom: -180px;
-  width: 480px;
-  height: 480px;
-  background: rgba(4, 133, 174, 0.08);
+  right: -170px;
+  bottom: -160px;
+  width: 420px;
+  height: 420px;
+  background: rgba(4, 133, 174, 0.07);
 }
 
-/* ASP CRM logo */
-
+/* Logo */
 .register-brand {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
+  gap: 0.7rem;
   width: 100%;
   flex-shrink: 0;
 }
 
 .register-brand__icon {
-  width: clamp(3.2rem, 5vw, 4.7rem);
-  height: clamp(3.2rem, 5vw, 4.7rem);
+  width: 3.2rem;
+  height: 3.2rem;
   stroke-width: 1.65;
   color: #fff;
-}
-
-.register-brand__text {
-  min-width: 0;
 }
 
 .register-brand__text h1 {
   margin: 0;
   color: #fff;
-  font-size: clamp(2rem, 3.5vw, 3.35rem);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
   font-weight: 800;
   line-height: 1.05;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
 }
 
 .register-brand__text p {
-  margin: 0.55rem 0 0;
+  margin: 0.4rem 0 0;
   color: #b8def9;
-  font-size: clamp(0.62rem, 1.05vw, 0.9rem);
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.15em;
-  line-height: 1.5;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
   white-space: nowrap;
 }
 
-/* Illustration */
-
+/* Illustration – smaller */
 .register-page__illustration-wrap {
   position: relative;
   z-index: 1;
@@ -141,34 +119,33 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 560px;
+  max-width: 420px;
   min-width: 0;
 }
 
 .register-page__illustration {
   display: block;
   width: 100%;
-  max-height: min(43vh, 440px);
+  max-height: min(32vh, 320px);
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.08));
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.08));
 }
 
-/* Left panel caption */
-
+/* Caption – tighter */
 .register-page__caption {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   text-align: center;
 }
 
 .register-page__accent-line {
   display: block;
-  width: 66px;
-  height: 6px;
-  margin: 0 auto 1.5rem;
+  width: 48px;
+  height: 4px;
+  margin: 0 auto 0.9rem;
   border-radius: 999px;
   background: var(--register-teal);
 }
@@ -176,18 +153,18 @@
 .register-page__caption h2 {
   margin: 0;
   color: #fff;
-  font-size: clamp(1.15rem, 1.8vw, 1.65rem);
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.45;
   letter-spacing: -0.02em;
 }
 
 .register-page__caption p {
-  max-width: 390px;
-  margin: 0.75rem auto 0;
+  max-width: 360px;
+  margin: 0.5rem auto 0;
   color: #c8dff1;
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 0.88rem;
+  line-height: 1.55;
 }
 
 /* =========================================
@@ -202,71 +179,62 @@
   min-width: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: clamp(1.5rem, 4vw, 3.5rem);
+  padding: 1.5rem 2rem;
   background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(206, 231, 255, 0.55),
-      transparent 25%
-    ),
+    radial-gradient(circle at 100% 0%, rgba(206, 231, 255, 0.45), transparent 25%),
     linear-gradient(145deg, #f9fcff, #edf5fe);
 }
 
-/* Registration card */
-
+/* Card – more compact + elevated */
 .register-card {
   width: 100%;
-  max-width: 720px;
+  max-width: 640px;
   min-width: 0;
-  padding: clamp(1.5rem, 3vw, 2.75rem);
+  padding: 1.75rem 2rem;
   border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.96);
+  border-radius: 18px;
+  background: #ffffff;
   box-shadow:
-    0 20px 60px rgba(30, 83, 128, 0.09),
-    0 2px 8px rgba(30, 83, 128, 0.035);
+    0 4px 6px rgba(30, 83, 128, 0.03),
+    0 14px 36px rgba(30, 83, 128, 0.09);
 }
 
-/* Card heading */
-
+/* Header – tighter */
 .register-card__header {
-  margin-bottom: 2rem;
+  margin-bottom: 1.4rem;
 }
 
 .register-card__eyebrow {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.5rem;
   color: #009bb8;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.15em;
-  line-height: 1.5;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
 .register-card__header h2 {
   margin: 0;
   color: var(--register-text);
-  font-size: clamp(1.9rem, 3vw, 2.9rem);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
   font-weight: 800;
   line-height: 1.15;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.04em;
 }
 
 .register-card__description {
-  margin: 0.8rem 0 0;
+  margin: 0.5rem 0 0;
   color: var(--register-muted);
-  font-size: 0.98rem;
-  line-height: 1.65;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
-/* =========================================
-   Registration form
-   ========================================= */
-
+/* Form – reduced gaps */
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.1rem;
   width: 100%;
   min-width: 0;
 }
@@ -274,7 +242,7 @@
 .register-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
+  gap: 1rem;
   width: 100%;
   min-width: 0;
 }
@@ -282,41 +250,33 @@
 .register-field {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.45rem;
   width: 100%;
   min-width: 0;
   color: var(--register-text);
-  font-size: 0.92rem;
-  font-weight: 750;
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
-.register-field > span {
-  line-height: 1.4;
-}
-
-/* Input with leading icon */
-
+/* Input – shorter */
 .register-field__input-wrap {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.65rem;
   width: 100%;
   min-width: 0;
-  min-height: 56px;
-  padding: 0 1rem;
+  min-height: 48px;
+  padding: 0 0.85rem;
   border: 1px solid var(--register-border);
   border-radius: 11px;
   background: linear-gradient(135deg, #edf5ff, #e6f1ff);
-  transition:
-    border-color 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
 .register-field__input-wrap > svg {
   flex-shrink: 0;
-  width: 23px;
-  height: 23px;
+  width: 20px;
+  height: 20px;
   color: #0869b7;
   stroke-width: 1.9;
 }
@@ -332,14 +292,14 @@
   flex: 1;
   width: 100%;
   min-width: 0;
-  min-height: 54px;
+  min-height: 46px;
   padding: 0;
   border: 0;
   outline: none;
   color: #173d63;
   background: transparent;
   font: inherit;
-  font-size: 0.94rem;
+  font-size: 0.9rem;
   font-weight: 450;
 }
 
@@ -353,24 +313,21 @@
   opacity: 0.7;
 }
 
-/* Password visibility button */
-
+/* Toggle button */
 .register-field__toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 34px;
-  height: 38px;
+  width: 32px;
+  height: 34px;
   padding: 0;
   border: 0;
   border-radius: 7px;
   color: #0869b7;
   background: transparent;
   cursor: pointer;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
+  transition: background 160ms ease, color 160ms ease;
 }
 
 .register-field__toggle:hover:not(:disabled) {
@@ -384,60 +341,55 @@
 }
 
 .register-field__toggle svg {
-  width: 21px;
-  height: 21px;
+  width: 19px;
+  height: 19px;
 }
 
-/* Error message */
-
+/* Error */
 .register-form__error {
-  margin: -0.25rem 0 0;
-  padding: 0.9rem 1rem;
+  margin: -0.15rem 0 0;
+  padding: 0.75rem 0.9rem;
   border: 1px solid #fecaca;
   border-radius: 10px;
   color: #b42318;
   background: #fff1f0;
-  font-size: 0.9rem;
-  line-height: 1.55;
+  font-size: 0.86rem;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-/* Create account button */
-
+/* Submit button – shorter */
 .register-form__submit {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
-  min-height: 64px;
-  margin-top: 0.15rem;
-  padding: 1rem 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-height: 50px;
+  margin-top: 0.1rem;
+  padding: 0.85rem 1.4rem;
+  border: 0;
   border-radius: 12px;
   color: #fff;
   background: linear-gradient(110deg, #075293, #08769b);
-  box-shadow: 0 8px 20px rgba(7, 82, 147, 0.17);
+  box-shadow: 0 8px 18px rgba(7, 82, 147, 0.16);
   font: inherit;
-  font-size: 1.02rem;
+  font-size: 0.95rem;
   font-weight: 750;
   cursor: pointer;
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    background 180ms ease;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
 }
 
 .register-form__submit svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   transition: transform 180ms ease;
 }
 
 .register-form__submit:hover:not(:disabled) {
   transform: translateY(-1px);
   background: linear-gradient(110deg, #06477f, #066784);
-  box-shadow: 0 12px 25px rgba(7, 82, 147, 0.23);
+  box-shadow: 0 11px 24px rgba(7, 82, 147, 0.22);
 }
 
 .register-form__submit:hover:not(:disabled) svg {
@@ -450,11 +402,10 @@
   box-shadow: none;
 }
 
-/* Footer and sign-in link */
-
+/* Footer */
 .register-card__footer {
-  margin-top: 1.8rem;
-  padding-top: 1.5rem;
+  margin-top: 1.3rem;
+  padding-top: 1.15rem;
   border-top: 1px solid #d7e7f8;
   text-align: center;
 }
@@ -464,11 +415,11 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin: 0;
   color: var(--register-muted);
-  font-size: 0.93rem;
-  line-height: 1.7;
+  font-size: 0.88rem;
+  line-height: 1.6;
 }
 
 .register-card__footer a {
@@ -483,8 +434,7 @@
   color: #0086a4;
 }
 
-/* Accessible keyboard focus */
-
+/* Focus */
 .register-page button:focus-visible,
 .register-page a:focus-visible {
   outline: 3px solid rgba(0, 160, 190, 0.55);
@@ -492,235 +442,76 @@
 }
 
 /* =========================================
-   Responsive: laptops and smaller desktops
+   Responsive
    ========================================= */
 
 @media (max-width: 1100px) {
   .register-page {
     grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   }
-
   .register-page__visual {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.25rem;
   }
-
-  .register-brand__text h1 {
-    font-size: clamp(1.8rem, 3vw, 2.5rem);
-  }
-
-  .register-brand__text p {
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-  }
-
   .register-page__illustration {
-    max-height: 36vh;
+    max-height: 28vh;
   }
-
-  .register-page__content {
-    padding: 1.5rem;
-  }
-
   .register-card {
-    padding: 2rem;
-  }
-
-  .register-form__grid {
-    gap: 1rem;
-  }
-
-  .register-field__input-wrap {
-    gap: 0.55rem;
-    padding: 0 0.75rem;
+    padding: 1.5rem 1.75rem;
   }
 }
-
-/* =========================================
-   Responsive: tablets
-   ========================================= */
 
 @media (max-width: 850px) {
   .register-page {
     grid-template-columns: 1fr;
     overflow: visible;
-    overflow: clip;
   }
-
   .register-page__visual {
     min-height: auto;
-    min-height: initial;
-    gap: 1.25rem;
-    padding: 2.5rem 2rem;
+    gap: 1rem;
+    padding: 1.75rem 1.5rem;
   }
-
-  .register-brand {
-    justify-content: center;
-  }
-
-  .register-brand__text h1 {
-    font-size: 2.5rem;
-  }
-
-  .register-brand__text p {
-    font-size: 0.75rem;
-    letter-spacing: 0.13em;
-  }
-
-  .register-page__illustration-wrap {
-    max-width: 400px;
-  }
-
   .register-page__illustration {
-    max-height: 300px;
+    max-height: 240px;
   }
-
-  .register-page__caption h2 {
-    font-size: 1.35rem;
-  }
-
-  .register-page__caption p {
-    margin-top: 0.5rem;
-  }
-
-  .register-page__accent-line {
-    margin-bottom: 1rem;
-  }
-
   .register-page__content {
     min-height: auto;
-    min-height: initial;
-    padding: 2.5rem 1.5rem;
+    padding: 1.75rem 1.25rem;
   }
-
   .register-card {
-    max-width: 650px;
-    padding: 2.25rem;
+    max-width: 560px;
   }
 }
-
-/* =========================================
-   Responsive: mobile phones
-   ========================================= */
 
 @media (max-width: 560px) {
   .register-page__visual {
-    gap: 1rem;
-    padding: 1.75rem 1.25rem;
+    padding: 1.4rem 1rem;
   }
-
-  .register-brand {
-    gap: 0.6rem;
-  }
-
-  .register-brand__icon {
-    width: 2.8rem;
-    height: 2.8rem;
-  }
-
-  .register-brand__text h1 {
-    font-size: 2rem;
-  }
-
-  .register-brand__text p {
-    margin-top: 0.35rem;
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-  }
-
-  .register-page__illustration-wrap {
-    max-width: 300px;
-  }
-
   .register-page__illustration {
-    max-height: 220px;
+    max-height: 200px;
   }
-
-  .register-page__caption h2 {
-    font-size: 1.12rem;
-  }
-
-  .register-page__caption p {
-    max-width: 320px;
-    font-size: 0.86rem;
-  }
-
   .register-page__content {
-    padding: 1.25rem 0.85rem 2rem;
+    padding: 1.1rem 0.85rem 1.75rem;
   }
-
   .register-card {
-    padding: 1.4rem 1.1rem;
+    padding: 1.25rem 1rem;
     border-radius: 16px;
   }
-
-  .register-card__header {
-    margin-bottom: 1.5rem;
-  }
-
-  .register-card__eyebrow {
-    font-size: 0.7rem;
-  }
-
-  .register-card__header h2 {
-    font-size: 1.85rem;
-  }
-
-  .register-card__description {
-    font-size: 0.9rem;
-  }
-
-  .register-form {
-    gap: 1.15rem;
-  }
-
   .register-form__grid {
     grid-template-columns: 1fr;
-    gap: 1.15rem;
   }
-
-  .register-field {
-    gap: 0.5rem;
-    font-size: 0.88rem;
-  }
-
   .register-field__input-wrap {
-    min-height: 52px;
+    min-height: 46px;
   }
-
-  .register-field__input-wrap input {
-    min-height: 50px;
-    font-size: 0.88rem;
-  }
-
-  .register-field__input-wrap > svg {
-    width: 21px;
-    height: 21px;
-  }
-
   .register-form__submit {
-    min-height: 56px;
-    font-size: 0.95rem;
-  }
-
-  .register-card__footer {
-    margin-top: 1.4rem;
-    padding-top: 1.25rem;
-  }
-
-  .register-card__footer p {
-    font-size: 0.86rem;
+    min-height: 48px;
   }
 }
-
-/* Respect reduced-motion preferences */
 
 @media (prefers-reduced-motion: reduce) {
   .register-page *,
   .register-page *::before,
   .register-page *::after {
-    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
   }
 }

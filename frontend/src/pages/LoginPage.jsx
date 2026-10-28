@@ -232,7 +232,7 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import secureLoginIllustration from "../assets/Secure login.svg";
 import "./LoginPage.css";
-import { LogIn, Eye, EyeOff, User, Lock } from "lucide-react";
+import { LogIn, Eye, EyeOff, User, Lock , Mail} from "lucide-react";
 
 function BrandMark() {
   return (
@@ -382,9 +382,6 @@ export default function LoginPage() {
           </div>
 
           <header className="login-page__heading">
-            <p className="login-page__eyebrow">
-              MU AFTER SCHOOL PROGRAM
-            </p>
 
             <h1>Welcome back</h1>
 
@@ -406,7 +403,7 @@ export default function LoginPage() {
               <span>Email address</span>
 
               <div className="login-page__input-wrap">
-                <User
+                <Mail
                   className="login-page__input-icon"
                   size={19}
                   strokeWidth={2}

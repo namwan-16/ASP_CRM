@@ -514,6 +514,7 @@ export default function RegisterPage() {
                   ? "Creating account..."
                   : "Create account"}
               </span>
+              
 
               {!submitting && (
                 <ArrowRight aria-hidden="true" />
