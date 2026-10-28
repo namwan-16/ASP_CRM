@@ -556,11 +556,11 @@
 
   /* Option B (Recommended): Hide illustration completely */
   
-  .login-page__illustration-wrap,
+  /* .login-page__illustration-wrap,
   .register-page__illustration-wrap {
     display: none;
   }
- 
+  */
 
   .login-page__art-brand h2,
   .register-brand__text h1 {
