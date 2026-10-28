@@ -1,5 +1,5 @@
 /* =========================================================
-   ASP CRM LOGIN PAGE - Improved
+   ASP CRM LOGIN PAGE - Final Version
    ========================================================= */
 
 .login-page {
@@ -49,7 +49,7 @@
     linear-gradient(145deg, #174e78 0%, #123f63 45%, #092f4e 100%);
 }
 
-/* Softer decorative circles */
+/* Decorative circles */
 .login-page__decor {
   position: absolute;
   border-radius: 50%;
@@ -200,7 +200,7 @@
 }
 
 /* =========================================================
-   FORM CARD (more elevated)
+   FORM CARD
    ========================================================= */
 
 .login-page__form-wrap {
@@ -249,8 +249,8 @@
 
 .login-page__brand small {
   margin-top: 5px;
-  color: var(--teal);
-  font-size: 9px;
+  color: #009bb8;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
 }
@@ -463,7 +463,7 @@
 }
 
 /* =========================================================
-   OR DIVIDER + HELP
+   OR DIVIDER
    ========================================================= */
 
 .login-page__divider {
@@ -487,27 +487,40 @@
   letter-spacing: 0.06em;
 }
 
-.login-page__help {
+/* =========================================================
+   HELP LINKS (Forgot + Create Account)
+   ========================================================= */
+
+.login-page__links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.login-page__help-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 14px;
+  margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.5;
-  text-align: center;
 }
 
-.login-page__help i {
-  display: inline-block;
-  width: 1px;
-  height: 16px;
-  background: #c9d5df;
+.login-page__help-row svg {
+  color: #1769a8;
+  flex-shrink: 0;
 }
 
-.login-page__help a {
+.login-page__separator {
+  color: #c9d5df;
+  font-weight: 400;
+}
+
+.login-page__help-row a {
   color: var(--navy);
   font-weight: 700;
   text-decoration: underline;
@@ -516,27 +529,8 @@
   transition: color 150ms ease;
 }
 
-.login-page__help a:hover {
+.login-page__help-row a:hover {
   color: var(--teal);
-}
-
-/* Create account link */
-.login-page__register {
-  margin: 0;
-  text-align: center;
-  font-size: 13.5px;
-  color: var(--muted);
-}
-
-.login-page__register a {
-  color: var(--navy);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.login-page__register a:hover {
-  color: var(--teal);
-  text-decoration: underline;
 }
 
 /* Focus */
@@ -601,6 +595,10 @@
   }
   .login-page__submit {
     min-height: 48px;
+  }
+  .login-page__help-row {
+    font-size: 12.5px;
+    gap: 6px;
   }
 }
 

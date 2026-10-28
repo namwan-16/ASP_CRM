@@ -232,7 +232,8 @@ import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import secureLoginIllustration from "../assets/Secure login.svg";
 import "./LoginPage.css";
-import { LogIn, Eye, EyeOff, User, Lock , Mail} from "lucide-react";
+import { LogIn, Eye, EyeOff, UserPlus, Lock , Mail} from "lucide-react";
+import { Link } from "react-router-dom";
 
 function BrandMark() {
   return (
@@ -550,18 +551,27 @@ export default function LoginPage() {
             <span />
           </div>
 
-          {/* FORGOT PASSWORD */}
-          <p className="login-page__help">
-            <span>Forgot your password?</span>
+         
+         {/* HELP LINKS */}
+          <div className="login-page__links">
+            <p className="login-page__help-row">
+              <Lock size={16} strokeWidth={2} />
+              <span>Forgot your password?</span>
+              <span className="login-page__separator">|</span>
+              <a
+                href="mailto:afterschoolprogram@murdoch.edu.au?subject=ASP%20CRM%20login%20assistance"
+              >
+                Contact the ASP coordinator
+              </a>
+            </p>
 
-            <i aria-hidden="true" />
-
-            <a
-              href="mailto:afterschoolprogram@murdoch.edu.au?subject=ASP%20CRM%20login%20assistance"
-            >
-              Contact the ASP coordinator
-            </a>
-          </p>
+            <p className="login-page__help-row">
+              <UserPlus size={16} strokeWidth={2} />
+              <span>Don’t have an ASP CRM account?</span>
+              <Link to="/register">Create an account</Link>
+            </p>
+          </div>
+          
         </div>
       </section>
     </main>
